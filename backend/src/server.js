@@ -27,12 +27,13 @@ app.get('/api/v1/health', (_req, res) => {
 app.post('/api/v1/session/init', async (req, res) => {
   const sessionId = genSessionId()
   const clientTime = req.body?.clientTime ?? null
+  const userId = req.body?.userId ?? null
 
   if (pool) {
     await pool.query(
-      `INSERT INTO participant_session (session_id, client_time, user_agent)
-       VALUES ($1, $2, $3)`,
-      [sessionId, clientTime, req.headers['user-agent'] ?? null],
+      `INSERT INTO participant_session (session_id, user_id, client_time, user_agent)
+       VALUES ($1, $2, $3, $4)`,
+      [sessionId, userId, clientTime, req.headers['user-agent'] ?? null],
     )
   }
 
@@ -70,7 +71,15 @@ app.post('/api/v1/events/batch', async (req, res) => {
 })
 
 app.post('/api/v1/experiment/submit', async (req, res) => {
-  const { sessionId, totalDurationMs, practiceAnswer, formalAnswers, surveyData } = req.body ?? {}
+  const {
+    sessionId,
+    userId,
+    totalDurationMs,
+    practiceAnswer,
+    formalAnswers,
+    surveyData,
+    surveyQuestionDurationsMs,
+  } = req.body ?? {}
 
   if (!sessionId) {
     res.status(400).json({ ok: false, message: 'sessionId is required' })
@@ -122,15 +131,32 @@ app.post('/api/v1/experiment/submit', async (req, res) => {
       if (surveyData) {
         await pool.query(
           `INSERT INTO survey_response
-            (session_id, hardest_question, judgment_basis, read_ubik_before, feedback_text, total_duration_ms)
-           VALUES ($1, $2, $3, $4, $5, $6)`,
+            (
+              session_id,
+              user_id,
+              hardest_question,
+              judgment_basis,
+              read_ubik_before,
+              feedback_text,
+              total_duration_ms,
+              q_hardest_question_duration_ms,
+              q_judgment_basis_duration_ms,
+              q_read_ubik_before_duration_ms,
+              q_feedback_duration_ms
+            )
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
           [
             sessionId,
+            userId ?? null,
             surveyData.hardestQuestion ?? null,
             surveyData.judgmentBasis ?? null,
             surveyData.readUbikBefore ?? null,
             surveyData.feedback ?? null,
             totalDurationMs ?? null,
+            surveyQuestionDurationsMs?.hardestQuestion ?? null,
+            surveyQuestionDurationsMs?.judgmentBasis ?? null,
+            surveyQuestionDurationsMs?.readUbikBefore ?? null,
+            surveyQuestionDurationsMs?.feedback ?? null,
           ],
         )
       }

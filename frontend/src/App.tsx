@@ -5,6 +5,7 @@ import { batchEvents, initSession, submitExperiment, type EventPayload, type Ste
 type Option = {
   id: string
   label: string
+  image?: string
 }
 
 type ItemQuestion = {
@@ -37,18 +38,34 @@ type SurveyData = {
 }
 
 const uid = () => `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
+const USER_ID_STORAGE_KEY = 'ubik_user_id'
+
+function getOrCreateUserId() {
+  const cached = window.localStorage.getItem(USER_ID_STORAGE_KEY)
+  if (cached) return cached
+  const next = window.crypto.randomUUID()
+  window.localStorage.setItem(USER_ID_STORAGE_KEY, next)
+  return next
+}
 
 const PRACTICE_QUESTION: ItemQuestion = {
   id: 'practice-led-lamp',
   name: 'LED 台灯',
-  question: '这个 LED 台灯退行到 1960 年代后，最可能变成什么？',
+  question: 'LED 台灯退行到 1960 年代最可能变成什么？',
   correctOptionId: 'A',
   options: [
-    { id: 'A', label: 'A. 煤油灯' },
-    { id: 'B', label: 'B. 蜡烛台' },
-    { id: 'C', label: 'C. 手电筒' },
-    { id: 'D', label: 'D. 霓虹灯管' },
+    { id: 'A', label: 'A. 煤油灯', image: '图示：便携油灯，局部照明' },
+    { id: 'B', label: 'B. 蜡烛台', image: '图示：蜡烛火焰，持续性较弱' },
+    { id: 'C', label: 'C. 手电筒', image: '图示：手持光束，非桌面常驻' },
+    { id: 'D', label: 'D. 霓虹灯管', image: '图示：商业空间氛围照明' },
   ],
+}
+
+const PRACTICE_FEEDBACK_TEXT = {
+  correctTitle: '回答正确',
+  correctReason: '煤油灯与 LED 台灯都用于桌面/局部照明，功能对应关系最稳定。',
+  wrongTitle: '回答错误',
+  wrongReason: '正确答案是 A（煤油灯）。本题应优先匹配“功能用途”，而不是外观或使用场景。',
 }
 
 const FORMAL_ITEMS: ItemQuestion[] = [
@@ -191,6 +208,7 @@ function getInitialStepFromQuery(): Step {
 function App() {
   const [step, setStep] = useState<Step>(() => getInitialStepFromQuery())
   const [sessionId, setSessionId] = useState('')
+  const [userId] = useState(() => getOrCreateUserId())
   const [consented, setConsented] = useState(false)
   const [loading, setLoading] = useState(false)
   const [toast, setToast] = useState('')
@@ -199,6 +217,8 @@ function App() {
   const [practiceSelected, setPracticeSelected] = useState('')
   const [practiceAnswer, setPracticeAnswer] = useState<PracticeAnswer | null>(null)
   const [showPracticeFeedback, setShowPracticeFeedback] = useState(false)
+  const [showEnterFormalButton, setShowEnterFormalButton] = useState(false)
+  const [practiceFeedbackShownAt, setPracticeFeedbackShownAt] = useState<number | null>(null)
 
   const [formalPanelItem, setFormalPanelItem] = useState<ItemQuestion | null>(null)
   const [formalSelected, setFormalSelected] = useState('')
@@ -211,16 +231,19 @@ function App() {
     feedback: '',
   })
   const [submitting, setSubmitting] = useState(false)
+  const [surveyQuestionDurationsMs, setSurveyQuestionDurationsMs] = useState<Record<string, number>>({})
 
   const [position, setPosition] = useState({ x: 0, z: 0 })
   const [nowMs, setNowMs] = useState(Date.now())
 
   const eventsRef = useRef<EventPayload[]>([])
+  const practiceFeedbackTimerRef = useRef<number | null>(null)
   const appStartAtRef = useRef<number>(Date.now())
   const stepStartAtRef = useRef<number>(Date.now())
   const experimentStartAtRef = useRef<number>(0)
   const panelOpenAtRef = useRef<number>(0)
   const formalOrderRef = useRef<number>(0)
+  const surveyQuestionOpenAtRef = useRef<Record<string, number>>({})
 
   const formalAnsweredIds = useMemo(
     () => new Set(formalAnswers.map((a) => a.itemId)),
@@ -257,10 +280,10 @@ function App() {
 
   useEffect(() => {
     void (async () => {
-      const session = await initSession()
+      const session = await initSession(userId)
       setSessionId(session.sessionId)
     })()
-  }, [])
+  }, [userId])
 
   useEffect(() => {
     const timer = window.setInterval(() => {
@@ -280,6 +303,9 @@ function App() {
   useEffect(() => {
     if (!sessionId) return
     track(`${step}_view`)
+    if (step === 'practice') {
+      track('practice_scene_loaded')
+    }
   }, [sessionId, step])
 
   useEffect(() => {
@@ -287,10 +313,30 @@ function App() {
   }, [step])
 
   useEffect(() => {
+    if (step !== 'survey') return
+    const openedAt = Date.now()
+    surveyQuestionOpenAtRef.current = {
+      hardestQuestion: openedAt,
+      judgmentBasis: openedAt,
+      readUbikBefore: openedAt,
+      feedback: openedAt,
+    }
+    setSurveyQuestionDurationsMs({})
+  }, [step])
+
+  useEffect(() => {
     const timer = window.setInterval(() => {
       setNowMs(Date.now())
     }, 200)
     return () => clearInterval(timer)
+  }, [])
+
+  useEffect(() => {
+    return () => {
+      if (practiceFeedbackTimerRef.current) {
+        window.clearTimeout(practiceFeedbackTimerRef.current)
+      }
+    }
   }, [])
 
   useEffect(() => {
@@ -322,6 +368,14 @@ function App() {
   const openPracticePanel = useCallback(() => {
     setPracticePanelOpen(true)
     setPracticeSelected('')
+    setPracticeAnswer(null)
+    setShowPracticeFeedback(false)
+    setShowEnterFormalButton(false)
+    setPracticeFeedbackShownAt(null)
+    if (practiceFeedbackTimerRef.current) {
+      window.clearTimeout(practiceFeedbackTimerRef.current)
+      practiceFeedbackTimerRef.current = null
+    }
     panelOpenAtRef.current = Date.now()
     track('practice_object_clicked', { itemId: PRACTICE_QUESTION.id })
   }, [sessionId, step])
@@ -337,15 +391,32 @@ function App() {
     }
     setPracticeAnswer(answer)
     setShowPracticeFeedback(true)
+    setShowEnterFormalButton(false)
+    setPracticeFeedbackShownAt(Date.now())
     track('practice_answer_submitted', {
       itemId: answer.itemId,
       selectedOptionId: answer.selectedOptionId,
       isCorrect: answer.isCorrect,
       durationMs: answer.durationMs,
     })
+    track('practice_feedback_shown', {
+      itemId: answer.itemId,
+      isCorrect: answer.isCorrect,
+    })
+
+    if (practiceFeedbackTimerRef.current) {
+      window.clearTimeout(practiceFeedbackTimerRef.current)
+    }
+    practiceFeedbackTimerRef.current = window.setTimeout(() => {
+      setShowEnterFormalButton(true)
+    }, 3000)
   }
 
   const enterFormal = () => {
+    if (practiceFeedbackTimerRef.current) {
+      window.clearTimeout(practiceFeedbackTimerRef.current)
+      practiceFeedbackTimerRef.current = null
+    }
     experimentStartAtRef.current = Date.now()
     goToStep('formal')
     track('enter_formal_experiment_click')
@@ -387,6 +458,18 @@ function App() {
     }
   }
 
+  const markSurveyAnswered = (questionKey: keyof SurveyData) => {
+    const openedAt = surveyQuestionOpenAtRef.current[questionKey]
+    if (!openedAt) return
+    setSurveyQuestionDurationsMs((prev) => {
+      if (prev[questionKey]) return prev
+      return {
+        ...prev,
+        [questionKey]: Date.now() - openedAt,
+      }
+    })
+  }
+
   const surveyValid =
     Boolean(surveyData.hardestQuestion) &&
     Boolean(surveyData.judgmentBasis) &&
@@ -399,10 +482,12 @@ function App() {
 
     const payload = {
       sessionId,
+      userId,
       totalDurationMs: Date.now() - experimentStartAtRef.current,
       practiceAnswer,
       formalAnswers,
       surveyData,
+      surveyQuestionDurationsMs,
       eventBufferLength: eventsRef.current.length,
     }
 
@@ -425,6 +510,7 @@ function App() {
         id: PRACTICE_QUESTION.id,
         name: PRACTICE_QUESTION.name,
         answered: false,
+        slotOverride: 14,
       },
     ],
     [],
@@ -532,7 +618,7 @@ function App() {
       {!loading && step === 'practice' && (
         <section className="scene-wrap">
           <div className="scene-overlay-top">
-            <h1>《尤比克》物品退行认知实验平台</h1>
+            <h1>Step 2 练习题（3D）</h1>
             <button className="ghost-btn" onClick={() => goToStep('tutorial')}>
               返回教学页
             </button>
@@ -540,31 +626,39 @@ function App() {
 
           <div className="scene">
             <div className="scene-hud">
-              <span>
-                坐标 X:{position.x} Z:{position.z}
-              </span>
-              <span>点击发光物体开始练习题</span>
+              <span>极简小房间 · 可交互物：LED 台灯</span>
+              <span>先靠近台灯，再点击开始答题</span>
             </div>
-            <ThreeScene items={practiceSceneItems} onItemClick={handlePracticeItemClick} />
+            <ThreeScene
+              items={practiceSceneItems}
+              onItemClick={handlePracticeItemClick}
+              renderUnusedSlots={false}
+              initialCameraPosition={[-1.5, 2.4, 5.6]}
+              initialTarget={[-3.2, 1.25, 3.5]}
+            />
           </div>
 
           {practicePanelOpen && (
-            <div className="qa-panel">
+            <div className="qa-panel qa-panel--practice">
+              <div className="qa-panel-meta">练习题（单题）</div>
               <h3>{PRACTICE_QUESTION.question}</h3>
-              <div className="options-grid">
+              <div className="options-grid options-grid--visual">
                 {PRACTICE_QUESTION.options.map((opt) => (
                   <button
                     key={opt.id}
-                    className={practiceSelected === opt.id ? 'opt selected' : 'opt'}
+                    className={practiceSelected === opt.id ? 'opt opt--visual selected' : 'opt opt--visual'}
                     onClick={() => {
                       setPracticeSelected(opt.id)
                       track('practice_option_selected', { optionId: opt.id })
                     }}
+                    disabled={showPracticeFeedback}
                   >
-                    {opt.label}
+                    <span className="opt-image-placeholder">{opt.image}</span>
+                    <span>{opt.label}</span>
                   </button>
                 ))}
               </div>
+
               {!showPracticeFeedback && (
                 <button disabled={!practiceSelected} onClick={submitPractice}>
                   确认选择
@@ -572,16 +666,29 @@ function App() {
               )}
 
               {showPracticeFeedback && practiceAnswer && (
-                <div className="feedback">
-                  {practiceAnswer.isCorrect
-                    ? '正确！煤油灯和LED台灯都是桌面局部照明设备，功能结构最为对应。'
-                    : '答案是 A 哦！判断核心是「功能对应」，而非外形相似。'}
+                <div className={practiceAnswer.isCorrect ? 'feedback feedback--correct' : 'feedback feedback--wrong'}>
+                  <strong>
+                    {practiceAnswer.isCorrect
+                      ? PRACTICE_FEEDBACK_TEXT.correctTitle
+                      : PRACTICE_FEEDBACK_TEXT.wrongTitle}
+                  </strong>
+                  <p>
+                    {practiceAnswer.isCorrect
+                      ? PRACTICE_FEEDBACK_TEXT.correctReason
+                      : PRACTICE_FEEDBACK_TEXT.wrongReason}
+                  </p>
+                </div>
+              )}
+
+              {showPracticeFeedback && !showEnterFormalButton && practiceFeedbackShownAt && (
+                <div className="practice-delay-tip">
+                  {Math.max(0, 3 - Math.floor((nowMs - practiceFeedbackShownAt) / 1000))} 秒后可进入正式实验
                 </div>
               )}
             </div>
           )}
 
-          {showPracticeFeedback && (
+          {showEnterFormalButton && (
             <div className="bottom-action">
               <button onClick={enterFormal}>进入正式实验</button>
             </div>
@@ -647,9 +754,10 @@ function App() {
             1. 你觉得哪道题最难做判断？
             <select
               value={surveyData.hardestQuestion}
-              onChange={(e) =>
+              onChange={(e) => {
+                markSurveyAnswered('hardestQuestion')
                 setSurveyData((prev) => ({ ...prev, hardestQuestion: e.target.value }))
-              }
+              }}
             >
               <option value="">请选择</option>
               {FORMAL_ITEMS.map((_, index) => (
@@ -668,7 +776,10 @@ function App() {
                   type="radio"
                   name="basis"
                   checked={surveyData.judgmentBasis === item}
-                  onChange={() => setSurveyData((prev) => ({ ...prev, judgmentBasis: item }))}
+                  onChange={() => {
+                    markSurveyAnswered('judgmentBasis')
+                    setSurveyData((prev) => ({ ...prev, judgmentBasis: item }))
+                  }}
                 />
                 {item}
               </label>
@@ -683,7 +794,10 @@ function App() {
                   type="radio"
                   name="ubik"
                   checked={surveyData.readUbikBefore === item}
-                  onChange={() => setSurveyData((prev) => ({ ...prev, readUbikBefore: item }))}
+                  onChange={() => {
+                    markSurveyAnswered('readUbikBefore')
+                    setSurveyData((prev) => ({ ...prev, readUbikBefore: item }))
+                  }}
                 />
                 {item}
               </label>
@@ -695,7 +809,10 @@ function App() {
             <textarea
               maxLength={500}
               value={surveyData.feedback}
-              onChange={(e) => setSurveyData((prev) => ({ ...prev, feedback: e.target.value }))}
+              onChange={(e) => {
+                markSurveyAnswered('feedback')
+                setSurveyData((prev) => ({ ...prev, feedback: e.target.value }))
+              }}
               rows={5}
               placeholder="请输入你的反馈（最多500字）"
             />

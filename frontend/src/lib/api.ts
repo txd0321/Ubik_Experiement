@@ -12,10 +12,12 @@ export type EventPayload = {
 
 export type SubmitPayload = {
   sessionId: string
+  userId: string
   totalDurationMs: number
   practiceAnswer: unknown
   formalAnswers: unknown[]
   surveyData: unknown
+  surveyQuestionDurationsMs: Record<string, number>
   eventBufferLength: number
 }
 
@@ -56,13 +58,14 @@ async function mockSubmitAll(_data: SubmitPayload) {
   return { ok: true }
 }
 
-export async function initSession() {
+export async function initSession(userId?: string) {
   if (!API_BASE) {
     return mockInitSession()
   }
   try {
     return await postJson<{ sessionId: string }>('/api/v1/session/init', {
       clientTime: new Date().toISOString(),
+      userId: userId ?? null,
     })
   } catch {
     return mockInitSession()

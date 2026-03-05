@@ -8,6 +8,7 @@ type SceneItem = {
   id: string
   name: string
   answered: boolean
+  slotOverride?: number
 }
 
 type ThreeSceneProps = {
@@ -15,6 +16,9 @@ type ThreeSceneProps = {
   onItemClick: (id: string) => void
   modelScaleMultiplier?: number
   showAxesHelper?: boolean
+  renderUnusedSlots?: boolean
+  initialCameraPosition?: [number, number, number]
+  initialTarget?: [number, number, number]
 }
 
 const ROOM_SIZE = 16
@@ -266,6 +270,9 @@ export default function ThreeScene({
   onItemClick,
   modelScaleMultiplier = 1,
   showAxesHelper = false,
+  renderUnusedSlots = true,
+  initialCameraPosition,
+  initialTarget,
 }: ThreeSceneProps) {
   const mountRef = useRef<HTMLDivElement | null>(null)
   const coreRef = useRef<SceneCore | null>(null)
@@ -288,7 +295,8 @@ export default function ThreeScene({
     scene.background = new THREE.Color(0x202533)
 
     const camera = new THREE.PerspectiveCamera(60, mount.clientWidth / mount.clientHeight, 0.1, 100)
-    camera.position.set(4, CAMERA_EYE_HEIGHT, 6)
+    const cameraPos = initialCameraPosition ?? [4, CAMERA_EYE_HEIGHT, 6]
+    camera.position.set(cameraPos[0], cameraPos[1], cameraPos[2])
 
     const renderer = new THREE.WebGLRenderer({ antialias: true })
     renderer.setSize(mount.clientWidth, mount.clientHeight)
@@ -303,7 +311,8 @@ export default function ThreeScene({
 
     const controls = new OrbitControls(camera, renderer.domElement)
     controls.enableDamping = true
-    controls.target.set(0, CAMERA_EYE_HEIGHT, 0)
+    const targetPos = initialTarget ?? [0, CAMERA_EYE_HEIGHT, 0]
+    controls.target.set(targetPos[0], targetPos[1], targetPos[2])
     controls.update()
 
     const pmremGenerator = new THREE.PMREMGenerator(renderer)
@@ -360,23 +369,16 @@ export default function ThreeScene({
     wallMetalnessMap.wrapT = THREE.RepeatWrapping
     wallMetalnessMap.repeat.copy(wallpaperMap.repeat)
 
-    const floorMap = textureLoader.load('/assets/textures/floor_basecolor.jpg')
-    floorMap.colorSpace = THREE.SRGBColorSpace
-    floorMap.wrapS = THREE.RepeatWrapping
-    floorMap.wrapT = THREE.RepeatWrapping
-    floorMap.repeat.set(4, 4)
-
     const floorNormalMap = textureLoader.load('/assets/textures/floor_normal.png')
     floorNormalMap.wrapS = THREE.RepeatWrapping
     floorNormalMap.wrapT = THREE.RepeatWrapping
-    floorNormalMap.repeat.copy(floorMap.repeat)
+    floorNormalMap.repeat.set(4, 4)
 
     const maxAnisotropy = renderer.capabilities.getMaxAnisotropy()
     wallpaperMap.anisotropy = maxAnisotropy
     wallNormalMap.anisotropy = maxAnisotropy
     wallRoughnessMap.anisotropy = maxAnisotropy
     wallMetalnessMap.anisotropy = maxAnisotropy
-    floorMap.anisotropy = maxAnisotropy
     floorNormalMap.anisotropy = maxAnisotropy
 
     const roomMaterial = new THREE.MeshStandardMaterial({
@@ -400,8 +402,7 @@ export default function ThreeScene({
     const floor = new THREE.Mesh(
       new THREE.PlaneGeometry(ROOM_SIZE, ROOM_SIZE),
       new THREE.MeshStandardMaterial({
-        color: 0x6a5f52,
-        map: floorMap,
+        color: 0xffffff,
         normalMap: floorNormalMap,
         normalScale: new THREE.Vector2(0.8, 0.8),
         roughness: 0.92,
@@ -614,24 +615,26 @@ export default function ThreeScene({
     }
 
     itemsRef.current.forEach((item, index) => {
-      const slot = index % ITEM_CONFIGS.length
+      const slot = item.slotOverride ?? (index % ITEM_CONFIGS.length)
       slotById.set(item.id, slot)
       createItemVisual(item, slot)
     })
 
-    // 对于配置中未被题目 items 占用的槽位，也渲染为静态模型，便于手动调参预览
-    const usedSlots = new Set<number>(Array.from(slotById.values()))
-    ITEM_CONFIGS.forEach((_, slot) => {
-      if (usedSlots.has(slot)) return
-      createItemVisual(
-        {
-          id: `${EXTRA_ITEM_ID_PREFIX}${slot}`,
-          name: `extra-${slot}`,
-          answered: true,
-        },
-        slot,
-      )
-    })
+    if (renderUnusedSlots) {
+      // 对于配置中未被题目 items 占用的槽位，也渲染为静态模型，便于手动调参预览
+      const usedSlots = new Set<number>(Array.from(slotById.values()))
+      ITEM_CONFIGS.forEach((_, slot) => {
+        if (usedSlots.has(slot)) return
+        createItemVisual(
+          {
+            id: `${EXTRA_ITEM_ID_PREFIX}${slot}`,
+            name: `extra-${slot}`,
+            answered: true,
+          },
+          slot,
+        )
+      })
+    }
 
     const moveState = { KeyW: false, KeyA: false, KeyS: false, KeyD: false }
     const moveSpeed = 4
@@ -812,7 +815,7 @@ export default function ThreeScene({
     })
 
     items.forEach((item, index) => {
-      const slot = core.slotById.get(item.id) ?? (index % ITEM_CONFIGS.length)
+      const slot = core.slotById.get(item.id) ?? item.slotOverride ?? (index % ITEM_CONFIGS.length)
       if (!core.slotById.has(item.id)) {
         core.slotById.set(item.id, slot)
       }
