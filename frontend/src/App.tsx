@@ -178,21 +178,18 @@ function shuffleOptions(options: Option[]): Option[] {
   return [...options].sort(() => Math.random() - 0.5)
 }
 
-function parseDebugStepFromUrl(): Step | null {
-  const params = new URLSearchParams(window.location.search)
-  const stepParam = params.get('step')
-  if (!stepParam) return null
-
-  const allowed: Step[] = ['welcome', 'tutorial', 'practice', 'formal', 'survey']
-  if (allowed.includes(stepParam as Step)) {
-    return stepParam as Step
-  }
-
-  return null
+function getInitialStepFromQuery(): Step {
+  const stepParam = new URLSearchParams(window.location.search).get('step')
+  if (stepParam === 'welcome') return 'welcome'
+  if (stepParam === 'tutorial') return 'tutorial'
+  if (stepParam === 'practice') return 'practice'
+  if (stepParam === 'formal') return 'formal'
+  if (stepParam === 'survey') return 'survey'
+  return 'welcome'
 }
 
 function App() {
-  const [step, setStep] = useState<Step>('welcome')
+  const [step, setStep] = useState<Step>(() => getInitialStepFromQuery())
   const [sessionId, setSessionId] = useState('')
   const [consented, setConsented] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -217,8 +214,6 @@ function App() {
 
   const [position, setPosition] = useState({ x: 0, z: 0 })
   const [nowMs, setNowMs] = useState(Date.now())
-
-  const debugStepRef = useRef<Step | null>(parseDebugStepFromUrl())
 
   const eventsRef = useRef<EventPayload[]>([])
   const appStartAtRef = useRef<number>(Date.now())
@@ -265,19 +260,6 @@ function App() {
       const session = await initSession()
       setSessionId(session.sessionId)
     })()
-  }, [])
-
-  useEffect(() => {
-    const debugStep = debugStepRef.current
-    if (!debugStep) return
-
-    if (debugStep === 'formal') {
-      experimentStartAtRef.current = Date.now()
-      setStep('formal')
-      return
-    }
-
-    setStep(debugStep)
   }, [])
 
   useEffect(() => {
@@ -469,7 +451,6 @@ function App() {
   }, [formalAnsweredIds])
 
   const isSceneStep = step === 'practice' || step === 'formal'
-  const debugStepActive = Boolean(debugStepRef.current)
 
   const formatDuration = (ms: number) => {
     const safeMs = Math.max(0, ms)
@@ -627,12 +608,7 @@ function App() {
               </span>
               <span>自由移动并点击发光物品作答</span>
             </div>
-            <ThreeScene
-              items={formalSceneItems}
-              onItemClick={handleFormalItemClick}
-              modelScaleMultiplier={3}
-              showAxesHelper
-            />
+            <ThreeScene items={formalSceneItems} onItemClick={handleFormalItemClick} />
           </div>
 
           {formalPanelItem && (
@@ -737,9 +713,6 @@ function App() {
         <span>单题时长：{formatDuration(singleQuestionDurationMs)}</span>
       </div>
 
-      {debugStepActive && (
-        <div className="toast">调试模式：已通过 URL step 参数直达当前步骤</div>
-      )}
       {toast && <div className="toast">{toast}</div>}
     </div>
   )

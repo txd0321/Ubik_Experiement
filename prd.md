@@ -384,6 +384,82 @@
 - 流程级：步骤进入/离开、完成进度
 - 提交级：提交发起、成功、失败、重试
 
+## 9.2.1 本研究数据采集清单（补充）
+
+### A. 答题数据（必须）
+
+每道题必须采集以下字段：
+
+- `item_id` / `question_id`
+- `selected_option`
+- `is_correct`
+- `answer_opened_at`（题目面板弹出时间戳）
+- `answer_submitted_at`（点击“确认选择”时间戳）
+- `duration_ms`（`answer_submitted_at - answer_opened_at`）
+
+说明：
+- 练习题与正式题统一字段结构，便于后续统计。
+- 正式题保留 `order_index`（第几次作答），用于分析作答顺序效应。
+
+### B. 行为数据（强烈建议）
+
+#### 1）移动轨迹（每秒一次）
+
+- 事件建议：`camera_track_tick`
+- 记录频率：1Hz（每秒 1 次）
+- 建议字段：
+  - `session_id`
+  - `ts`
+  - `camera_position`：`{ x, y, z }`
+  - `camera_rotation`（可选）：`{ pitch, yaw, roll }`
+  - `step`
+
+#### 2）物品发现与接近
+
+对每个 `item_id` 记录：
+
+- `first_discovered_at`：首次进入视野时间（首次满足“在摄像机前方且可见”判定）
+- `first_approached_at`：首次接近时间（首次满足交互距离阈值，如 <= 2.5m）
+
+建议事件：
+- `item_first_discovered`
+- `item_first_approached`
+
+#### 3）停留时长
+
+- 指标：`dwell_time_ms_total_per_item`
+- 统计口径：用户在物品前方且距离阈值内的累计停留时长（可按 200ms tick 累加）
+
+建议事件：
+- `item_dwell_tick`（可选）
+- 或在最终提交时直接上报聚合结果：`item_dwell_summary`
+
+#### 4）重新审视已完成物品
+
+- 当 `item.answered = true` 后，若用户再次接近/注视该物品，记录复访行为。
+- 建议字段：
+  - `item_id`
+  - `revisit_at`
+  - `revisit_duration_ms`（可选）
+  - `revisit_count`（可在最终聚合）
+
+建议事件：
+- `answered_item_revisit`
+
+### C. 元数据（必须）
+
+每个 session 至少包含：
+
+- `user_id`（随机 UUID，匿名，不可逆）
+- `session_start_at`
+- `session_end_at`
+- `device_info`（`userAgent`、平台、浏览器）
+- `screen_resolution`（如 `1920x1080`）
+
+说明：
+- `user_id` 与 `session_id` 分离：`user_id` 标识被试，`session_id` 标识单次实验会话。
+- 若单设备可多次参与，建议保留 `user_id + session_id` 二级结构。
+
 ## 9.3 上报策略
 
 - 前端内存队列累计（如 10 条或 5 秒触发）

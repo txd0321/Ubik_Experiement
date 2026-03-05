@@ -21,7 +21,7 @@ const ROOM_SIZE = 16
 const ROOM_HEIGHT = 8
 const CAMERA_EYE_HEIGHT = ROOM_HEIGHT / 2
 const INTERACT_DISTANCE = 2.4
-const GLOBAL_MODEL_SCALE = 0.3
+const GLOBAL_MODEL_SCALE = 0.9
 
 type ItemPlacementConfig = {
   modelPath: string
@@ -35,9 +35,9 @@ type ItemPlacementConfig = {
 const ITEM_CONFIGS: ItemPlacementConfig[] = [
   {
     modelPath: '/assets/models/2030_air_conditioner.glb',
-    position: [-7.5, 6, 2],
-    targetSize: 5,
-    rotationY: 1.5,
+    position: [-7.5, 6, 4],
+    targetSize: 6,
+    rotationY: Math.PI/2,
   },
   {
     modelPath: '/assets/models/2030_coffee_machine.glb',
@@ -53,9 +53,9 @@ const ITEM_CONFIGS: ItemPlacementConfig[] = [
   },
   {
     modelPath: '/assets/models/2030_digital_wallet.glb',
-    position: [2.8, 0.7, -4.6],
+    position: [-2,1, 5.4],
     targetSize: 1.1,
-    rotationY: 0,
+    rotationY: Math.PI / 2,
   },
   {
     modelPath: '/assets/models/2030_door.glb',
@@ -89,8 +89,8 @@ const ITEM_CONFIGS: ItemPlacementConfig[] = [
   },
   {
     modelPath: '/assets/models/2030_time_spray.glb',
-    position: [0, 0.7, 5.2],
-    targetSize: 1.1,
+    position: [-3, 1.45, 5.5],
+    targetSize: 1.5,
     rotationY: 0,
     rotationZ: -Math.PI / 2,
   },
@@ -111,6 +111,31 @@ const ITEM_CONFIGS: ItemPlacementConfig[] = [
     position: [4.6, 0,4.6],
     targetSize: 7.5,
     rotationY: -Math.PI / 1,
+  },
+  // ===== 新增模型手动调参（和上面同格式）=====
+  {
+    modelPath: '/assets/models/2030_tea_table.glb',
+    position: [-2.5, 0, 4.5],
+    targetSize: 4,
+    rotationY: Math.PI / 2,
+  },
+  {
+    modelPath: '/assets/models/2030_lighter.glb',
+    position: [-3.2, 1,3.5],
+    targetSize: 1,
+    rotationY: Math.PI / 5,
+  },
+  {
+    modelPath: '/assets/models/2030_projecter_01.glb',
+    position: [8, 2, 4.2],
+    targetSize: 7.5,
+    rotationY: Math.PI/2,
+  },
+  {
+    modelPath: '/assets/models/2030_projecter_02.glb',
+    position: [-1.8, 1.02, 3.6],
+    targetSize: 1.4,
+    rotationY: Math.PI / 2,
   },
 ]
 
@@ -147,6 +172,10 @@ const NO_GREEN_MODEL_PATHS = new Set([
   '/assets/models/2030_chair.glb',
   '/assets/models/2030_sofa.glb',
   '/assets/models/2030_bed.glb',
+  '/assets/models/2030_tea_table.glb',
+  '/assets/models/2030_lighter.glb',
+  '/assets/models/2030_projecter_01.glb',
+  '/assets/models/2030_projecter_02.glb',
 ])
 
 function fitModelToTarget(model: THREE.Object3D, targetSize = 1.1) {
@@ -283,11 +312,38 @@ export default function ThreeScene({
 
     const textureLoader = new THREE.TextureLoader()
 
-    const wallpaperMap = textureLoader.load('/assets/textures/wall_basecolor.jpg')
+    const wallpaperCanvas = document.createElement('canvas')
+    wallpaperCanvas.width = 2048
+    wallpaperCanvas.height = 1024
+    const wallpaperCtx = wallpaperCanvas.getContext('2d')
+    if (wallpaperCtx) {
+      // 使用竖向渐变，避免不同墙面在水平方向出现明显拼接边界
+      const wallpaperGradient = wallpaperCtx.createLinearGradient(0, 0, 0, wallpaperCanvas.height)
+      wallpaperGradient.addColorStop(0, '#9fc3ff')
+      wallpaperGradient.addColorStop(0.72, '#bbaeff')
+      wallpaperGradient.addColorStop(1, '#f4b3dc')
+      wallpaperCtx.fillStyle = wallpaperGradient
+      wallpaperCtx.fillRect(0, 0, wallpaperCanvas.width, wallpaperCanvas.height)
+
+      const glowGradient = wallpaperCtx.createRadialGradient(
+        wallpaperCanvas.width * 0.25,
+        wallpaperCanvas.height * 0.35,
+        40,
+        wallpaperCanvas.width * 0.25,
+        wallpaperCanvas.height * 0.35,
+        420,
+      )
+      glowGradient.addColorStop(0, 'rgba(195, 235, 255, 0.18)')
+      glowGradient.addColorStop(1, 'rgba(195, 235, 255, 0)')
+      wallpaperCtx.fillStyle = glowGradient
+      wallpaperCtx.fillRect(0, 0, wallpaperCanvas.width, wallpaperCanvas.height)
+    }
+
+    const wallpaperMap = new THREE.CanvasTexture(wallpaperCanvas)
     wallpaperMap.colorSpace = THREE.SRGBColorSpace
-    wallpaperMap.wrapS = THREE.RepeatWrapping
-    wallpaperMap.wrapT = THREE.RepeatWrapping
-    wallpaperMap.repeat.set(3.5, 1.8)
+    wallpaperMap.wrapS = THREE.ClampToEdgeWrapping
+    wallpaperMap.wrapT = THREE.ClampToEdgeWrapping
+    wallpaperMap.repeat.set(1, 1)
 
     const wallNormalMap = textureLoader.load('/assets/textures/wall_Normal.png')
     wallNormalMap.wrapS = THREE.RepeatWrapping
@@ -324,14 +380,16 @@ export default function ThreeScene({
     floorNormalMap.anisotropy = maxAnisotropy
 
     const roomMaterial = new THREE.MeshStandardMaterial({
-      color: 0xb9b1a2,
+      color: 0xffffff,
       map: wallpaperMap,
       normalMap: wallNormalMap,
-      normalScale: new THREE.Vector2(0.35, 0.35),
+      normalScale: new THREE.Vector2(0.22, 0.22),
       roughnessMap: wallRoughnessMap,
       metalnessMap: wallMetalnessMap,
-      roughness: 0.85,
-      metalness: 0.08,
+      roughness: 0.62,
+      metalness: 0.18,
+      emissive: new THREE.Color('#2e1a66'),
+      emissiveIntensity: 0.14,
       side: THREE.BackSide,
     })
     const room = new THREE.Mesh(new THREE.BoxGeometry(ROOM_SIZE, ROOM_HEIGHT, ROOM_SIZE), roomMaterial)
