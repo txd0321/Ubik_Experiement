@@ -47,9 +47,8 @@ textarea {
   top: 0;
   z-index: 30;
   display: flex;
-  justify-content: space-between;
+  justify-content: center;
   align-items: center;
-  gap: 14px;
   margin-bottom: 16px;
   padding: 10px 14px;
   border-radius: 12px;
@@ -68,24 +67,48 @@ textarea {
 }
 
 .global-nav__brand {
-  font-size: 18px;
+  position: absolute;
+  left: 14px;
+  font-size: 20px;
+  font-weight: 800;
+  color: #1d4ed8;
+  white-space: nowrap;
+}
+
+.global-nav__steps {
+  width: auto;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  row-gap: 4px;
+}
+
+.global-nav__step-item-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.global-nav__step-item {
+  font-size: 16px;
+  color: #8a8a8a;
+  font-weight: 500;
+}
+
+.global-nav__step-item.active {
+  color: #1d4ed8;
   font-weight: 700;
 }
 
-.global-nav__step {
-  flex: 1;
-  text-align: center;
-  font-size: 14px;
-  font-weight: 600;
+.global-nav__step-sep {
+  font-size: 13px;
+  color: #b0b0b0;
 }
 
 .global-nav__progress {
-  margin-left: 6px;
-}
-
-.global-nav__time {
-  font-size: 13px;
-  white-space: nowrap;
+  margin-left: 4px;
+  font-weight: 700;
 }
 
 .scene-overlay-top {
@@ -111,18 +134,36 @@ textarea {
 }
 
 .scene-overlay-top--tutorial {
+  left: 50%;
   right: auto;
-  width: min(560px, calc(100vw - 32px));
+  top: auto;
+  bottom: 24px;
+  transform: translateX(-50%);
+  width: min(900px, calc(100vw - 32px));
   display: block;
-  text-align: left;
-  background: rgba(255, 255, 255, 0.68);
-  backdrop-filter: blur(3px);
+  text-align: center;
+  background: rgba(51, 51, 51, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  color: #ffffff;
+  backdrop-filter: blur(2px);
+}
+
+.scene-overlay-top--tutorial p {
+  margin: 0;
+  color: #ffffff;
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.scene-overlay-top--tutorial h1 {
+  color: #ffffff;
 }
 
 .scene-overlay-top--tutorial ol {
   margin: 10px 0 0;
   padding-left: 20px;
-  color: #1f1f1f;
+  color: #ffffff;
 }
 
 .scene-overlay-top--tutorial li + li {
@@ -163,7 +204,7 @@ textarea {
 
 .panel {
   max-width: 980px;
-  margin: 0 auto;
+  margin: clamp(40px, 12vh, 130px) auto 24px;
   padding: 30px;
   border-radius: 18px;
   background: #ffffff;
@@ -181,11 +222,21 @@ textarea {
   color: #333333;
 }
 
-.checkbox-row {
-  display: flex;
-  align-items: center;
+.hero-intro {
+  line-height: 1.7;
+}
+
+.phone-input-row {
+  display: grid;
   gap: 10px;
   margin: 18px 0;
+}
+
+.phone-input-row input {
+  border-radius: 10px;
+  border: 1px solid #cdd4ee;
+  padding: 10px 12px;
+  width: min(420px, 100%);
 }
 
 button {
@@ -201,6 +252,10 @@ button {
 button:disabled {
   opacity: 0.45;
   cursor: not-allowed;
+}
+
+.start-btn {
+  min-width: 160px;
 }
 
 .tutorial {
@@ -311,6 +366,24 @@ button:disabled {
   padding: 8px 12px;
 }
 
+.scene-hud--practice {
+  left: 50%;
+  right: auto;
+  top: 38vh;
+  bottom: auto;
+  transform: translate(-50%, -50%);
+  width: auto;
+  min-width: 320px;
+  max-width: min(92vw, 760px);
+  justify-content: center;
+  text-align: center;
+  background: rgba(51, 51, 51, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  color: #ffffff;
+  font-size: 28px;
+  font-weight: 700;
+}
+
 .items-grid {
   margin-top: 24px;
   display: grid;
@@ -399,10 +472,38 @@ button:disabled {
   border-radius: 10px;
 }
 
+.feedback--correct {
+  background: #ecfdf3;
+  border: 1px solid #86efac;
+}
+
+.feedback--correct strong {
+  color: #15803d;
+}
+
+.feedback--wrong {
+  background: #fef2f2;
+  border: 1px solid #fca5a5;
+}
+
+.feedback--wrong strong {
+  color: #dc2626;
+}
+
 .bottom-action {
   margin-top: 12px;
   text-align: center;
   transform: translateY(-260px);
+}
+
+.bottom-action--in-panel {
+  transform: none;
+  margin-top: 14px;
+}
+
+.practice-finish-title {
+  margin: 0;
+  text-align: center;
 }
 
 .survey {
@@ -475,6 +576,17 @@ fieldset {
 }
 
 @media (max-width: 900px) {
+  .global-nav {
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .global-nav__steps {
+    width: 100%;
+    justify-content: center;
+  }
+
   .tutorial {
     grid-template-columns: 1fr;
   }

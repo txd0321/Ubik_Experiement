@@ -49,23 +49,23 @@ function getOrCreateUserId() {
 }
 
 const PRACTICE_QUESTION: ItemQuestion = {
-  id: 'practice-led-lamp',
-  name: 'LED 台灯',
-  question: 'LED 台灯退行到 1960 年代最可能变成什么？',
-  correctOptionId: 'A',
+  id: 'practice-cube',
+  name: '正方体',
+  question: '练习题（单选）：正方体有几个面？',
+  correctOptionId: 'D',
   options: [
-    { id: 'A', label: 'A. 煤油灯', image: '图示：便携油灯，局部照明' },
-    { id: 'B', label: 'B. 蜡烛台', image: '图示：蜡烛火焰，持续性较弱' },
-    { id: 'C', label: 'C. 手电筒', image: '图示：手持光束，非桌面常驻' },
-    { id: 'D', label: 'D. 霓虹灯管', image: '图示：商业空间氛围照明' },
+    { id: 'A', label: 'A. 3个' },
+    { id: 'B', label: 'B. 4个' },
+    { id: 'C', label: 'C. 5个' },
+    { id: 'D', label: 'D. 6个' },
   ],
 }
 
 const PRACTICE_FEEDBACK_TEXT = {
   correctTitle: '回答正确',
-  correctReason: '煤油灯与 LED 台灯都用于桌面/局部照明，功能对应关系最稳定。',
+  correctReason: '正确答案是 D（6个）。',
   wrongTitle: '回答错误',
-  wrongReason: '正确答案是 A（煤油灯）。本题应优先匹配“功能用途”，而不是外观或使用场景。',
+  wrongReason: '正确答案是 D（6个）。',
 }
 
 const FORMAL_ITEMS: ItemQuestion[] = [
@@ -209,7 +209,7 @@ function App() {
   const [step, setStep] = useState<Step>(() => getInitialStepFromQuery())
   const [sessionId, setSessionId] = useState('')
   const [userId] = useState(() => getOrCreateUserId())
-  const [consented, setConsented] = useState(false)
+  const [participantPhone, setParticipantPhone] = useState('')
   const [loading, setLoading] = useState(false)
   const [toast, setToast] = useState('')
 
@@ -219,6 +219,7 @@ function App() {
   const [showPracticeFeedback, setShowPracticeFeedback] = useState(false)
   const [showEnterFormalButton, setShowEnterFormalButton] = useState(false)
   const [practiceFeedbackShownAt, setPracticeFeedbackShownAt] = useState<number | null>(null)
+  const [practiceActiveItemIds, setPracticeActiveItemIds] = useState<string[]>([])
 
   const [formalPanelItem, setFormalPanelItem] = useState<ItemQuestion | null>(null)
   const [formalSelected, setFormalSelected] = useState('')
@@ -231,6 +232,7 @@ function App() {
     feedback: '',
   })
   const [submitting, setSubmitting] = useState(false)
+  const [submitSuccess, setSubmitSuccess] = useState(false)
   const [surveyQuestionDurationsMs, setSurveyQuestionDurationsMs] = useState<Record<string, number>>({})
 
   const [position, setPosition] = useState({ x: 0, z: 0 })
@@ -238,8 +240,6 @@ function App() {
 
   const eventsRef = useRef<EventPayload[]>([])
   const practiceFeedbackTimerRef = useRef<number | null>(null)
-  const appStartAtRef = useRef<number>(Date.now())
-  const stepStartAtRef = useRef<number>(Date.now())
   const experimentStartAtRef = useRef<number>(0)
   const panelOpenAtRef = useRef<number>(0)
   const formalOrderRef = useRef<number>(0)
@@ -304,13 +304,11 @@ function App() {
     if (!sessionId) return
     track(`${step}_view`)
     if (step === 'practice') {
+      track('tutorial_view')
       track('practice_scene_loaded')
     }
   }, [sessionId, step])
 
-  useEffect(() => {
-    stepStartAtRef.current = Date.now()
-  }, [step])
 
   useEffect(() => {
     if (step !== 'survey') return
@@ -323,6 +321,7 @@ function App() {
     }
     setSurveyQuestionDurationsMs({})
   }, [step])
+
 
   useEffect(() => {
     const timer = window.setInterval(() => {
@@ -495,6 +494,7 @@ function App() {
       await flushEvents()
       await submitExperiment(payload)
       track('survey_submit_success')
+      setSubmitSuccess(true)
       setToast('提交成功！再次感谢您的参与！')
     } catch {
       track('survey_submit_failed')
@@ -538,92 +538,107 @@ function App() {
 
   const isSceneStep = step === 'practice' || step === 'formal'
 
-  const formatDuration = (ms: number) => {
-    const safeMs = Math.max(0, ms)
-    const totalSec = Math.floor(safeMs / 1000)
-    const m = Math.floor(totalSec / 60)
-    const s = totalSec % 60
-    return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
-  }
 
-  const totalDurationMs = nowMs - appStartAtRef.current
-  const stepDurationMs = nowMs - stepStartAtRef.current
-  const singleQuestionDurationMs = panelOpenAtRef.current ? nowMs - panelOpenAtRef.current : 0
+  const navSteps = [
+    { key: 'consent', label: 'Step 0 知情同意' },
+    { key: 'tutorial', label: 'Step 1 操作教学' },
+    { key: 'formal', label: 'Step 2 正式试验' },
+    { key: 'survey', label: 'Step 3 问卷与反馈' },
+    { key: 'thanks', label: '☑️谢谢参与' },
+  ] as const
 
-  const stepTextByStep: Record<Step, string> = {
-    welcome: '1.知情同意',
-    tutorial: '2.操作教学',
-    practice: '2.操作教学',
-    formal: '3.正式试验',
-    survey: '4.问卷与反馈',
-  }
-  const currentStepText = stepTextByStep[step]
+  const activeNavStepKey = submitSuccess
+    ? 'thanks'
+    : step === 'welcome'
+      ? 'consent'
+      : step === 'practice' || step === 'tutorial'
+        ? 'tutorial'
+        : step === 'formal'
+          ? 'formal'
+          : 'survey'
 
   return (
     <div className={isSceneStep ? 'app-shell app-shell--scene' : 'app-shell'}>
       <header className={isSceneStep ? 'global-nav global-nav--overlay' : 'global-nav'}>
         <div className="global-nav__brand">Ubik Experiment</div>
-        <div className="global-nav__step">
-          当前步骤：{currentStepText}
-          {step === 'formal' && <span className="global-nav__progress">（{formalAnswers.length}/10）</span>}
-        </div>
-        <div className="global-nav__time">进入平台总计：{formatDuration(totalDurationMs)}</div>
+        <nav className="global-nav__steps" aria-label="实验步骤导航">
+          {navSteps.map((item, index) => (
+            <div key={item.key} className="global-nav__step-item-wrap">
+              <span className={item.key === activeNavStepKey ? 'global-nav__step-item active' : 'global-nav__step-item'}>
+                {item.label}
+                {item.key === 'formal' && step === 'formal' && (
+                  <span className="global-nav__progress">（{formalAnswers.length}/10）</span>
+                )}
+              </span>
+              {index < navSteps.length - 1 && <span className="global-nav__step-sep">----</span>}
+            </div>
+          ))}
+        </nav>
       </header>
 
       {loading && <div className="loading">加载中，请稍候...</div>}
 
       {!loading && step === 'welcome' && (
         <section className="panel hero">
-          <h2>物品功能退行认知匹配实验</h2>
-          <p>本次实验预计耗时 15 分钟，感谢您的参与。</p>
-          <p>
-            在《尤比克》的世界观中，现代物品会“退行”为更早时代在功能上对应的物品。你将进入
-            2026 现代客厅并完成 10 道判断题。
+          <h2>尤比克退行认知匹配实验</h2>
+          <p className="hero-intro">
+            在著名科幻作家菲利普迪克所著小说《尤比克》的世界观中，现代物品会“退行”为1930年代在功能上对应的物品，你将进入
+            2030现代客厅并完成 10 道判断题。
           </p>
-          <label className="checkbox-row">
+
+          <label className="phone-input-row">
+            <span>填写用户ID：请填写你的电话号码</span>
             <input
-              type="checkbox"
-              checked={consented}
+              type="tel"
+              inputMode="numeric"
+              placeholder="请输入电话号码"
+              value={participantPhone}
               onChange={(e) => {
-                setConsented(e.target.checked)
-                track('consent_checked', { checked: e.target.checked })
+                const nextValue = e.target.value.replace(/[^\d]/g, '').slice(0, 20)
+                setParticipantPhone(nextValue)
               }}
             />
-            我已阅读并同意参与实验
           </label>
+
           <button
-            disabled={!consented}
+            className="start-btn"
+            disabled={!participantPhone}
             onClick={() => {
-              track('start_experiment_click')
+              track('start_experiment_click', { participantPhone })
               goToStep('practice')
             }}
           >
-            开始实验
+            开始
           </button>
         </section>
       )}
 
       {!loading && step === 'practice' && (
         <section className="scene-wrap">
-          <div className="scene-overlay-top scene-overlay-top--tutorial">
-            <div>
-              <h1>操作教学</h1>
-              <ol>
-                <li>键盘 WASD 控制移动</li>
-                <li>移动鼠标控制视角</li>
-                <li>先靠近台灯，再点击发光物品开始练习答题</li>
-              </ol>
+          {!practicePanelOpen && (
+            <div className="scene-overlay-top scene-overlay-top--tutorial">
+              <div>
+                <p>键盘W,A, S, D 可控制前后左右移动，鼠标可控制视角</p>
+              </div>
             </div>
-          </div>
+          )}
 
           <div className="scene scene--practice">
-            <div className="scene-hud">
-              <span>极简小房间 · 可交互物：LED 台灯</span>
-              <span>先靠近台灯，再点击开始答题</span>
-            </div>
+            {!practicePanelOpen && (
+              <div className="scene-hud scene-hud--practice">
+                <span>
+                  {practiceActiveItemIds.length > 0
+                    ? '请点击物体'
+                    : '请靠近物体直到物体发光'}
+                </span>
+              </div>
+            )}
             <ThreeScene
               items={practiceSceneItems}
               onItemClick={handlePracticeItemClick}
+              onActiveItemsChange={setPracticeActiveItemIds}
+              scenePreset="practice"
+              interactionLocked={practicePanelOpen}
               renderUnusedSlots={false}
               initialCameraPosition={[-1.5, 2.4, 5.6]}
               initialTarget={[-3.2, 1.25, 3.5]}
@@ -632,57 +647,62 @@ function App() {
 
           {practicePanelOpen && (
             <div className="qa-panel qa-panel--practice">
-              <div className="qa-panel-meta">练习题（单题）</div>
-              <h3>{PRACTICE_QUESTION.question}</h3>
-              <div className="options-grid options-grid--visual">
-                {PRACTICE_QUESTION.options.map((opt) => (
-                  <button
-                    key={opt.id}
-                    className={practiceSelected === opt.id ? 'opt opt--visual selected' : 'opt opt--visual'}
-                    onClick={() => {
-                      setPracticeSelected(opt.id)
-                      track('practice_option_selected', { optionId: opt.id })
-                    }}
-                    disabled={showPracticeFeedback}
-                  >
-                    <span className="opt-image-placeholder">{opt.image}</span>
-                    <span>{opt.label}</span>
-                  </button>
-                ))}
-              </div>
+              {showEnterFormalButton ? (
+                <>
+                  <h3 className="practice-finish-title">恭喜完成操作教学环节！</h3>
+                  <div className="bottom-action bottom-action--in-panel">
+                    <button onClick={enterFormal}>进入正式实验</button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  {!showPracticeFeedback && (
+                    <>
+                      <div className="qa-panel-meta">练习题（单题）</div>
+                      <h3>{PRACTICE_QUESTION.question}</h3>
+                      <div className="options-grid">
+                        {PRACTICE_QUESTION.options.map((opt) => (
+                          <button
+                            key={opt.id}
+                            className={practiceSelected === opt.id ? 'opt selected' : 'opt'}
+                            onClick={() => {
+                              setPracticeSelected(opt.id)
+                              track('practice_option_selected', { optionId: opt.id })
+                            }}
+                          >
+                            {opt.label}
+                          </button>
+                        ))}
+                      </div>
 
-              {!showPracticeFeedback && (
-                <button disabled={!practiceSelected} onClick={submitPractice}>
-                  确认选择
-                </button>
+                      <button disabled={!practiceSelected} onClick={submitPractice}>
+                        确认选择
+                      </button>
+                    </>
+                  )}
+
+                  {showPracticeFeedback && practiceAnswer && (
+                    <div className={practiceAnswer.isCorrect ? 'feedback feedback--correct' : 'feedback feedback--wrong'}>
+                      <strong>
+                        {practiceAnswer.isCorrect
+                          ? PRACTICE_FEEDBACK_TEXT.correctTitle
+                          : PRACTICE_FEEDBACK_TEXT.wrongTitle}
+                      </strong>
+                      <p>
+                        {practiceAnswer.isCorrect
+                          ? PRACTICE_FEEDBACK_TEXT.correctReason
+                          : PRACTICE_FEEDBACK_TEXT.wrongReason}
+                      </p>
+                    </div>
+                  )}
+
+                  {showPracticeFeedback && !showEnterFormalButton && practiceFeedbackShownAt && (
+                    <div className="practice-delay-tip">
+                      {Math.max(0, 3 - Math.floor((nowMs - practiceFeedbackShownAt) / 1000))} 秒后可进入正式实验
+                    </div>
+                  )}
+                </>
               )}
-
-              {showPracticeFeedback && practiceAnswer && (
-                <div className={practiceAnswer.isCorrect ? 'feedback feedback--correct' : 'feedback feedback--wrong'}>
-                  <strong>
-                    {practiceAnswer.isCorrect
-                      ? PRACTICE_FEEDBACK_TEXT.correctTitle
-                      : PRACTICE_FEEDBACK_TEXT.wrongTitle}
-                  </strong>
-                  <p>
-                    {practiceAnswer.isCorrect
-                      ? PRACTICE_FEEDBACK_TEXT.correctReason
-                      : PRACTICE_FEEDBACK_TEXT.wrongReason}
-                  </p>
-                </div>
-              )}
-
-              {showPracticeFeedback && !showEnterFormalButton && practiceFeedbackShownAt && (
-                <div className="practice-delay-tip">
-                  {Math.max(0, 3 - Math.floor((nowMs - practiceFeedbackShownAt) / 1000))} 秒后可进入正式实验
-                </div>
-              )}
-            </div>
-          )}
-
-          {showEnterFormalButton && (
-            <div className="bottom-action">
-              <button onClick={enterFormal}>进入正式实验</button>
             </div>
           )}
         </section>
@@ -816,11 +836,6 @@ function App() {
         </section>
       )}
 
-      <div className="timer-bar">
-        <span>总时长：{formatDuration(totalDurationMs)}</span>
-        <span>当前步骤时长：{formatDuration(stepDurationMs)}</span>
-        <span>单题时长：{formatDuration(singleQuestionDurationMs)}</span>
-      </div>
 
       {toast && <div className="toast">{toast}</div>}
     </div>

@@ -14,17 +14,20 @@ type SceneItem = {
 type ThreeSceneProps = {
   items: SceneItem[]
   onItemClick: (id: string) => void
+  onActiveItemsChange?: (activeIds: string[]) => void
   modelScaleMultiplier?: number
   showAxesHelper?: boolean
   renderUnusedSlots?: boolean
   initialCameraPosition?: [number, number, number]
   initialTarget?: [number, number, number]
+  scenePreset?: 'default' | 'practice'
+  interactionLocked?: boolean
 }
 
 const ROOM_SIZE = 16
 const ROOM_HEIGHT = 8
 const CAMERA_EYE_HEIGHT = ROOM_HEIGHT / 2
-const INTERACT_DISTANCE = 2.4
+const INTERACT_DISTANCE = 4.2
 const GLOBAL_MODEL_SCALE = 0.9
 
 type ItemPlacementConfig = {
@@ -125,7 +128,7 @@ const ITEM_CONFIGS: ItemPlacementConfig[] = [
   },
   {
     modelPath: '/assets/models/2030_lighter.glb',
-    position: [-3.2, 1,3.5],
+    position: [6, 1, -6.5],
     targetSize: 1,
     rotationY: Math.PI / 5,
   },
@@ -150,6 +153,7 @@ type ItemVisual = {
   clickable: THREE.Object3D
   placeholder: THREE.Mesh | null
   emissiveMaterials: THREE.MeshStandardMaterial[]
+  glowHalo: THREE.Mesh
   suppressAnsweredGreen: boolean
   answered: boolean
   active: boolean
@@ -231,7 +235,7 @@ function collectEmissiveMaterials(root: THREE.Object3D) {
 }
 
 function updateVisualAppearance(visual: ItemVisual) {
-  const { answered, active, placeholder, emissiveMaterials, suppressAnsweredGreen } = visual
+  const { answered, active, placeholder, emissiveMaterials, glowHalo, suppressAnsweredGreen } = visual
   const shouldShowAnsweredGreen = answered && !suppressAnsweredGreen
 
   if (placeholder) {
@@ -257,27 +261,42 @@ function updateVisualAppearance(visual: ItemVisual) {
       mat.emissiveIntensity = 0.5
     } else if (active) {
       mat.emissive.set('#ffd84d')
-      mat.emissiveIntensity = 0.45
+      mat.emissiveIntensity = 1.2
     } else {
       mat.emissive.set('#000000')
       mat.emissiveIntensity = 0
     }
   })
+
+  const haloMat = glowHalo.material as THREE.MeshBasicMaterial
+  if (active && !answered) {
+    glowHalo.visible = true
+    haloMat.color.set('#ffd84d')
+    haloMat.opacity = 0.28
+  } else {
+    glowHalo.visible = false
+    haloMat.opacity = 0
+  }
 }
 
 export default function ThreeScene({
   items,
   onItemClick,
+  onActiveItemsChange,
   modelScaleMultiplier = 1,
   showAxesHelper = false,
   renderUnusedSlots = true,
   initialCameraPosition,
   initialTarget,
+  scenePreset = 'default',
+  interactionLocked = false,
 }: ThreeSceneProps) {
   const mountRef = useRef<HTMLDivElement | null>(null)
   const coreRef = useRef<SceneCore | null>(null)
   const itemsRef = useRef<SceneItem[]>(items)
   const onItemClickRef = useRef(onItemClick)
+  const onActiveItemsChangeRef = useRef(onActiveItemsChange)
+  const interactionLockedRef = useRef(interactionLocked)
 
   useEffect(() => {
     itemsRef.current = items
@@ -288,11 +307,26 @@ export default function ThreeScene({
   }, [onItemClick])
 
   useEffect(() => {
+    onActiveItemsChangeRef.current = onActiveItemsChange
+  }, [onActiveItemsChange])
+
+  useEffect(() => {
+    interactionLockedRef.current = interactionLocked
+    if (interactionLocked) {
+      const mount = mountRef.current
+      const canvas = mount?.querySelector('canvas') as HTMLCanvasElement | null
+      if (canvas) {
+        canvas.style.cursor = 'default'
+      }
+    }
+  }, [interactionLocked])
+
+  useEffect(() => {
     const mount = mountRef.current
     if (!mount) return
 
     const scene = new THREE.Scene()
-    scene.background = new THREE.Color(0x202533)
+    scene.background = new THREE.Color(scenePreset === 'practice' ? 0xffffff : 0x202533)
 
     const camera = new THREE.PerspectiveCamera(60, mount.clientWidth / mount.clientHeight, 0.1, 100)
     const cameraPos = initialCameraPosition ?? [4, CAMERA_EYE_HEIGHT, 6]
@@ -383,15 +417,15 @@ export default function ThreeScene({
 
     const roomMaterial = new THREE.MeshStandardMaterial({
       color: 0xffffff,
-      map: wallpaperMap,
-      normalMap: wallNormalMap,
+      map: scenePreset === 'practice' ? null : wallpaperMap,
+      normalMap: scenePreset === 'practice' ? null : wallNormalMap,
       normalScale: new THREE.Vector2(0.22, 0.22),
-      roughnessMap: wallRoughnessMap,
-      metalnessMap: wallMetalnessMap,
-      roughness: 0.62,
-      metalness: 0.18,
-      emissive: new THREE.Color('#2e1a66'),
-      emissiveIntensity: 0.14,
+      roughnessMap: scenePreset === 'practice' ? null : wallRoughnessMap,
+      metalnessMap: scenePreset === 'practice' ? null : wallMetalnessMap,
+      roughness: scenePreset === 'practice' ? 0.95 : 0.62,
+      metalness: scenePreset === 'practice' ? 0.02 : 0.18,
+      emissive: new THREE.Color(scenePreset === 'practice' ? '#000000' : '#2e1a66'),
+      emissiveIntensity: scenePreset === 'practice' ? 0 : 0.14,
       side: THREE.BackSide,
     })
     const room = new THREE.Mesh(new THREE.BoxGeometry(ROOM_SIZE, ROOM_HEIGHT, ROOM_SIZE), roomMaterial)
@@ -402,10 +436,10 @@ export default function ThreeScene({
     const floor = new THREE.Mesh(
       new THREE.PlaneGeometry(ROOM_SIZE, ROOM_SIZE),
       new THREE.MeshStandardMaterial({
-        color: 0xffffff,
-        normalMap: floorNormalMap,
+        color: scenePreset === 'practice' ? 0x000000 : 0xffffff,
+        normalMap: scenePreset === 'practice' ? null : floorNormalMap,
         normalScale: new THREE.Vector2(0.8, 0.8),
-        roughness: 0.92,
+        roughness: scenePreset === 'practice' ? 1 : 0.92,
         metalness: 0.02,
       }),
     )
@@ -537,7 +571,37 @@ export default function ThreeScene({
     const loadModelIntoVisual = async (visual: ItemVisual) => {
       const config = ITEM_CONFIGS[visual.slot]
       const modelPath = config?.modelPath
-      if (!modelPath || !config) return
+      if (!config) return
+
+      if (scenePreset === 'practice') {
+        if (!visualsById.has(visual.id)) return
+
+        const cube = new THREE.Mesh(
+          new THREE.BoxGeometry(1.4, 1.4, 1.4),
+          new THREE.MeshStandardMaterial({
+            color: '#6889F4',
+            roughness: 0.35,
+            metalness: 0.08,
+          }),
+        )
+        cube.castShadow = true
+        cube.receiveShadow = true
+
+        if (visual.placeholder) {
+          visual.root.remove(visual.placeholder)
+          visual.placeholder.geometry.dispose()
+          ;(visual.placeholder.material as THREE.Material).dispose()
+          visual.placeholder = null
+        }
+
+        visual.root.add(cube)
+        visual.clickable = cube
+        visual.emissiveMaterials = collectEmissiveMaterials(cube)
+        updateVisualAppearance(visual)
+        return
+      }
+
+      if (!modelPath) return
 
       try {
         let model = modelCache.get(visual.slot)
@@ -595,6 +659,18 @@ export default function ThreeScene({
       placeholder.receiveShadow = true
       root.add(placeholder)
 
+      const glowHalo = new THREE.Mesh(
+        new THREE.SphereGeometry(1.25, 28, 28),
+        new THREE.MeshBasicMaterial({
+          color: '#ffd84d',
+          transparent: true,
+          opacity: 0,
+          depthWrite: false,
+        }),
+      )
+      glowHalo.visible = false
+      root.add(glowHalo)
+
       const visual: ItemVisual = {
         id: item.id,
         slot,
@@ -602,6 +678,7 @@ export default function ThreeScene({
         clickable: placeholder,
         placeholder,
         emissiveMaterials: [],
+        glowHalo,
         suppressAnsweredGreen,
         answered: item.answered,
         active: false,
@@ -640,10 +717,16 @@ export default function ThreeScene({
     const moveSpeed = 4
 
     const keyDown = (event: KeyboardEvent) => {
-      if (event.code in moveState) {
-        event.preventDefault()
-        moveState[event.code as keyof typeof moveState] = true
+      if (!(event.code in moveState)) return
+      event.preventDefault()
+      if (interactionLockedRef.current) {
+        moveState.KeyW = false
+        moveState.KeyA = false
+        moveState.KeyS = false
+        moveState.KeyD = false
+        return
       }
+      moveState[event.code as keyof typeof moveState] = true
     }
 
     const keyUp = (event: KeyboardEvent) => {
@@ -660,14 +743,14 @@ export default function ThreeScene({
       moveState.KeyD = false
     }
 
-    const onClick = (event: MouseEvent) => {
+    const resolveHoveredItemId = (event: MouseEvent) => {
       const rect = renderer.domElement.getBoundingClientRect()
       pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1
       pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1
       raycaster.setFromCamera(pointer, camera)
 
       const hits = raycaster.intersectObjects(clickableRoots, true)
-      if (!hits.length) return
+      if (!hits.length) return undefined
 
       let target: THREE.Object3D | null = hits[0].object
       let targetItemId: string | undefined
@@ -677,6 +760,28 @@ export default function ThreeScene({
         target = target.parent
       }
 
+      return targetItemId
+    }
+
+    const onPointerMove = (event: MouseEvent) => {
+      if (interactionLockedRef.current) {
+        renderer.domElement.style.cursor = 'default'
+        return
+      }
+      const hoveredItemId = resolveHoveredItemId(event)
+      if (!hoveredItemId) {
+        renderer.domElement.style.cursor = 'default'
+        return
+      }
+
+      const visual = visualsById.get(hoveredItemId)
+      const isClickable = Boolean(visual && !visual.answered && visual.active)
+      renderer.domElement.style.cursor = isClickable ? 'pointer' : 'default'
+    }
+
+    const onClick = (event: MouseEvent) => {
+      if (interactionLockedRef.current) return
+      const targetItemId = resolveHoveredItemId(event)
       if (!targetItemId) return
       const visual = visualsById.get(targetItemId)
       if (!visual || visual.answered || !visual.active) return
@@ -685,6 +790,7 @@ export default function ThreeScene({
 
     let raf = 0
     const clock = new THREE.Clock()
+    let lastActiveIdsKey = ''
 
     const animate = () => {
       raf = requestAnimationFrame(animate)
@@ -714,6 +820,8 @@ export default function ThreeScene({
         controls.target.z = THREE.MathUtils.clamp(controls.target.z, -7.2, 7.2)
       }
 
+      const elapsed = clock.elapsedTime
+
       visualsById.forEach((visual) => {
         visual.root.position.y = visual.baseY
 
@@ -721,8 +829,26 @@ export default function ThreeScene({
         const distance = visual.root.position.distanceTo(flatCameraPos)
         visual.active = !visual.answered && distance <= INTERACT_DISTANCE
 
+        const haloMat = visual.glowHalo.material as THREE.MeshBasicMaterial
+        if (visual.active && !visual.answered) {
+          const pulse = (Math.sin(elapsed * 4.2) + 1) / 2
+          const scale = 1.12 + pulse * 0.14
+          visual.glowHalo.scale.setScalar(scale)
+          haloMat.opacity = 0.1 + pulse * 0.1
+        }
+
         updateVisualAppearance(visual)
       })
+
+      const activeIds = Array.from(visualsById.values())
+        .filter((visual) => visual.active && !visual.id.startsWith(EXTRA_ITEM_ID_PREFIX))
+        .map((visual) => visual.id)
+        .sort()
+      const activeIdsKey = activeIds.join('|')
+      if (activeIdsKey !== lastActiveIdsKey) {
+        lastActiveIdsKey = activeIdsKey
+        onActiveItemsChangeRef.current?.(activeIds)
+      }
 
       controls.update()
       renderer.render(scene, camera)
@@ -743,6 +869,7 @@ export default function ThreeScene({
     window.addEventListener('keydown', keyDown)
     window.addEventListener('keyup', keyUp)
     window.addEventListener('blur', blurReset)
+    renderer.domElement.addEventListener('mousemove', onPointerMove)
     renderer.domElement.addEventListener('click', onClick)
 
     const dispose = () => {
@@ -751,7 +878,9 @@ export default function ThreeScene({
       window.removeEventListener('keydown', keyDown)
       window.removeEventListener('keyup', keyUp)
       window.removeEventListener('blur', blurReset)
+      renderer.domElement.removeEventListener('mousemove', onPointerMove)
       renderer.domElement.removeEventListener('click', onClick)
+      renderer.domElement.style.cursor = 'default'
 
       controls.dispose()
       pmremGenerator.dispose()
