@@ -511,6 +511,16 @@ button:disabled {
   gap: 16px;
 }
 
+.survey > h2 {
+  color: #1d4ed8;
+}
+
+.survey-submit-btn {
+  width: fit-content;
+  min-width: 160px;
+  justify-self: start;
+}
+
 label,
 fieldset {
   display: grid;
@@ -573,6 +583,22 @@ fieldset {
   border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 12px;
   padding: 12px 14px;
+}
+
+.survey-success-only {
+  width: min(980px, calc(100vw - 48px));
+  min-height: calc(100vh - 140px);
+  margin: 0 auto;
+  display: grid;
+  place-items: center;
+  text-align: center;
+}
+
+.survey-success-only h2 {
+  margin: 0;
+  color: #1d4ed8;
+  font-size: clamp(20px, 4.2vw, 32px);
+  font-weight: 800;
 }
 
 @media (max-width: 900px) {

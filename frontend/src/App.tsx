@@ -31,9 +31,12 @@ type FormalAnswer = {
 }
 
 type SurveyData = {
-  hardestQuestion: string
-  judgmentBasis: string
-  readUbikBefore: string
+  taskDifficulty: string
+  coreDifficulties: string[]
+  decisionBases: string[]
+  noticedEnvironmentChanges: string
+  environmentImpact: string
+  narrativePresence: string
   feedback: string
 }
 
@@ -226,9 +229,12 @@ function App() {
   const [formalAnswers, setFormalAnswers] = useState<FormalAnswer[]>([])
 
   const [surveyData, setSurveyData] = useState<SurveyData>({
-    hardestQuestion: '',
-    judgmentBasis: '',
-    readUbikBefore: '',
+    taskDifficulty: '',
+    coreDifficulties: [],
+    decisionBases: [],
+    noticedEnvironmentChanges: '',
+    environmentImpact: '',
+    narrativePresence: '',
     feedback: '',
   })
   const [submitting, setSubmitting] = useState(false)
@@ -314,9 +320,12 @@ function App() {
     if (step !== 'survey') return
     const openedAt = Date.now()
     surveyQuestionOpenAtRef.current = {
-      hardestQuestion: openedAt,
-      judgmentBasis: openedAt,
-      readUbikBefore: openedAt,
+      taskDifficulty: openedAt,
+      coreDifficulties: openedAt,
+      decisionBases: openedAt,
+      noticedEnvironmentChanges: openedAt,
+      environmentImpact: openedAt,
+      narrativePresence: openedAt,
       feedback: openedAt,
     }
     setSurveyQuestionDurationsMs({})
@@ -470,9 +479,12 @@ function App() {
   }
 
   const surveyValid =
-    Boolean(surveyData.hardestQuestion) &&
-    Boolean(surveyData.judgmentBasis) &&
-    Boolean(surveyData.readUbikBefore)
+    Boolean(surveyData.taskDifficulty) &&
+    surveyData.coreDifficulties.length > 0 &&
+    surveyData.decisionBases.length > 0 &&
+    Boolean(surveyData.noticedEnvironmentChanges) &&
+    (surveyData.noticedEnvironmentChanges === '否' || Boolean(surveyData.environmentImpact.trim())) &&
+    Boolean(surveyData.narrativePresence)
 
   const submitSurvey = async () => {
     if (!surveyValid || submitting) return
@@ -758,39 +770,49 @@ function App() {
         </section>
       )}
 
-      {!loading && step === 'survey' && (
+      {!loading && step === 'survey' && !submitSuccess && (
         <section className="panel survey">
           <h2>实验完成！感谢你的参与！</h2>
+          <p className="survey-intro">针对你刚才交互过的 10 组物品，请根据实际感受打分。</p>
 
           <label>
-            1. 你觉得哪道题最难做判断？
+            1. 回顾刚才的交互过程，请评估各物品“退行判断”的整体难度（1-7分）
             <select
-              value={surveyData.hardestQuestion}
+              value={surveyData.taskDifficulty}
               onChange={(e) => {
-                markSurveyAnswered('hardestQuestion')
-                setSurveyData((prev) => ({ ...prev, hardestQuestion: e.target.value }))
+                markSurveyAnswered('taskDifficulty')
+                setSurveyData((prev) => ({ ...prev, taskDifficulty: e.target.value }))
               }}
             >
               <option value="">请选择</option>
-              {FORMAL_ITEMS.map((_, index) => (
-                <option key={index + 1} value={`第${index + 1}题`}>
-                  第{index + 1}题
+              {[1, 2, 3, 4, 5, 6, 7].map((score) => (
+                <option key={score} value={String(score)}>
+                  {score}
                 </option>
               ))}
             </select>
           </label>
 
           <fieldset>
-            <legend>2. 你在做判断时主要依据什么？</legend>
-            {['物品的功能用途', '物品的外形相似度', '物品的时代感', '直觉'].map((item) => (
+            <legend>2. 对于你认为难度 ≥5 分的物品，主要困难来源于？（可多选）</legend>
+            {[
+              '视觉干扰项（如形状、颜色）非常有迷惑性',
+              '难以联想到100年前对应功能的物理实体（逻辑跨度大）',
+              '不确定《尤比克》世界观下的演变规则',
+              '选项中没有我认为完全合理的答案',
+            ].map((item) => (
               <label key={item} className="radio-line">
                 <input
-                  type="radio"
-                  name="basis"
-                  checked={surveyData.judgmentBasis === item}
-                  onChange={() => {
-                    markSurveyAnswered('judgmentBasis')
-                    setSurveyData((prev) => ({ ...prev, judgmentBasis: item }))
+                  type="checkbox"
+                  checked={surveyData.coreDifficulties.includes(item)}
+                  onChange={(e) => {
+                    markSurveyAnswered('coreDifficulties')
+                    setSurveyData((prev) => ({
+                      ...prev,
+                      coreDifficulties: e.target.checked
+                        ? [...prev.coreDifficulties, item]
+                        : prev.coreDifficulties.filter((v) => v !== item),
+                    }))
                   }}
                 />
                 {item}
@@ -799,16 +821,25 @@ function App() {
           </fieldset>
 
           <fieldset>
-            <legend>3. 你之前是否读过《尤比克》或了解这个世界观？</legend>
-            {['是', '否'].map((item) => (
+            <legend>3. 你在判断“应该退化成什么”时，最主要依据是？（可多选）</legend>
+            {[
+              '视觉匹配（形状、材质、空间比例）',
+              '功能外推（用途一致但技术层级属于旧时代）',
+              '原著记忆（《尤比克》情节或设定）',
+              '直觉驱动（第一反应）',
+            ].map((item) => (
               <label key={item} className="radio-line">
                 <input
-                  type="radio"
-                  name="ubik"
-                  checked={surveyData.readUbikBefore === item}
-                  onChange={() => {
-                    markSurveyAnswered('readUbikBefore')
-                    setSurveyData((prev) => ({ ...prev, readUbikBefore: item }))
+                  type="checkbox"
+                  checked={surveyData.decisionBases.includes(item)}
+                  onChange={(e) => {
+                    markSurveyAnswered('decisionBases')
+                    setSurveyData((prev) => ({
+                      ...prev,
+                      decisionBases: e.target.checked
+                        ? [...prev.decisionBases, item]
+                        : prev.decisionBases.filter((v) => v !== item),
+                    }))
                   }}
                 />
                 {item}
@@ -816,8 +847,60 @@ function App() {
             ))}
           </fieldset>
 
+          <fieldset>
+            <legend>4. 你是否察觉到环境中其他细节变化（如灯光、噪声、墙面等）？</legend>
+            {['是', '否'].map((item) => (
+              <label key={item} className="radio-line">
+                <input
+                  type="radio"
+                  name="noticedEnvironmentChanges"
+                  checked={surveyData.noticedEnvironmentChanges === item}
+                  onChange={() => {
+                    markSurveyAnswered('noticedEnvironmentChanges')
+                    setSurveyData((prev) => ({ ...prev, noticedEnvironmentChanges: item }))
+                  }}
+                />
+                {item}
+              </label>
+            ))}
+          </fieldset>
+
+          {surveyData.noticedEnvironmentChanges === '是' && (
+            <label>
+              若选择“是”，请简述这些变化是否增强了你对“退行逻辑”的理解或影响了你的决策
+              <textarea
+                maxLength={500}
+                value={surveyData.environmentImpact}
+                onChange={(e) => {
+                  markSurveyAnswered('environmentImpact')
+                  setSurveyData((prev) => ({ ...prev, environmentImpact: e.target.value }))
+                }}
+                rows={4}
+                placeholder="请输入你的说明"
+              />
+            </label>
+          )}
+
           <label>
-            4. 任何想补充的反馈？（选填）
+            5. 你多大程度“进入”了这个正在崩塌的《尤比克》虚拟世界？（1-7分）
+            <select
+              value={surveyData.narrativePresence}
+              onChange={(e) => {
+                markSurveyAnswered('narrativePresence')
+                setSurveyData((prev) => ({ ...prev, narrativePresence: e.target.value }))
+              }}
+            >
+              <option value="">请选择</option>
+              {[1, 2, 3, 4, 5, 6, 7].map((score) => (
+                <option key={score} value={String(score)}>
+                  {score}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label>
+            6. 请问您对本次试验有什么建议（选填）
             <textarea
               maxLength={500}
               value={surveyData.feedback}
@@ -826,18 +909,23 @@ function App() {
                 setSurveyData((prev) => ({ ...prev, feedback: e.target.value }))
               }}
               rows={5}
-              placeholder="请输入你的反馈（最多500字）"
+              placeholder="请输入你的建议"
             />
           </label>
 
-          <button disabled={!surveyValid || submitting} onClick={() => void submitSurvey()}>
+          <button className="survey-submit-btn" disabled={!surveyValid || submitting} onClick={() => void submitSurvey()}>
             {submitting ? '提交中...' : '提交问卷'}
           </button>
         </section>
       )}
 
+      {!loading && step === 'survey' && submitSuccess && (
+        <section className="survey-success-only">
+          <h2>提交成功！再次感谢您的参与！</h2>
+        </section>
+      )}
 
-      {toast && <div className="toast">{toast}</div>}
+      {toast && !submitSuccess && <div className="toast">{toast}</div>}
     </div>
   )
 }
