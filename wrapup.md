@@ -231,3 +231,12 @@ psql "postgresql://experiment_user:experiment_pass@localhost:5432/experiment_db"
 
 - mock
   - 模拟数据/模拟接口。用于开发调试，不会真实入库。
+
+---
+
+## 8. Git 提交时要输入的两行命令
+
+```bash
+git add .
+git commit -m "你的提交说明"
+```

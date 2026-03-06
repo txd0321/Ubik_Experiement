@@ -18,10 +18,9 @@
 构建一套完整的线上实验系统，引导被试完成以下全流程：
 
 1. 欢迎与知情同意
-2. 操作教学
-3. 练习题（1 题）
-4. 正式实验（10 题）
-5. 实验后问卷与数据提交
+2. 操作教学 + 练习题（1 题，3D 场景内完成）
+3. 正式实验（10 题）
+4. 实验后问卷与数据提交
 
 ### 2.2 研究目标
 
@@ -37,19 +36,17 @@
 
 ## 3. 页面与信息架构
 
-## 3.1 页面结构（5 步）
+## 3.1 页面结构（4 步）
 
 1. **Step 0：欢迎页**（静态）
-2. **Step 1：操作教学页**（静态）
-3. **Step 2：练习场景**（3D）
-4. **Step 3：正式实验场景**（3D）
-5. **Step 4：结束页 + 问卷**（静态表单）
+2. **Step 1：操作教学 + 练习场景**（3D，教学浮窗叠加）
+3. **Step 2：正式实验场景**（3D）
+4. **Step 3：结束页 + 问卷**（静态表单）
 
 ## 3.2 路由建议
 
 - `/` → 欢迎页
-- `/tutorial` → 操作教学页
-- `/practice` → 练习场景
+- `/practice` → 操作教学 + 练习场景
 - `/experiment` → 正式实验场景
 - `/survey` → 结束问卷页
 
@@ -59,7 +56,6 @@
 
 - `INIT`
 - `CONSENTED`
-- `TUTORIAL_DONE`
 - `PRACTICE_DONE`
 - `EXPERIMENT_IN_PROGRESS`
 - `EXPERIMENT_DONE`
@@ -116,7 +112,7 @@
 
 - 未勾选同意：按钮禁用
 - 勾选同意后：按钮可点击
-- 点击开始：进入教学页，显示加载动画
+- 点击开始：进入操作教学 + 练习场景，显示加载动画
 
 ### 埋点事件
 
@@ -126,26 +122,31 @@
 
 ---
 
-## 5.2 Step 1 操作教学页
+## 5.2 Step 1 操作教学 + 练习题（3D）
 
 ### 页面元素
 
-- 左侧操作说明（WASD、鼠标、点击）
-- 右侧示意图（发光物品 + 面板）
-- “进入场景”按钮
+- 场景上方半透明教学浮窗（WASD、鼠标、点击说明）
+- 3D 练习场景（发光物品 + 问答面板）
 
 ### 交互规则
 
-- 点击“进入场景”后进入练习场景
+- 进入页面即显示教学浮窗并可直接在场景中练习
+- 用户靠近并点击练习物品后完成练习题
 
 ### 埋点事件
 
-- `tutorial_view`
-- `enter_practice_click`
+- `tutorial_view`（教学浮窗展示）
+- `practice_scene_loaded`
+- `practice_object_clicked`
+- `practice_option_selected`
+- `practice_answer_submitted`
+- `practice_feedback_shown`
+- `enter_formal_experiment_click`
 
 ---
 
-## 5.3 Step 2 练习题（3D）
+## 5.3 Step 2 正式实验（3D）
 
 ### 场景配置
 
@@ -178,7 +179,7 @@
 
 ---
 
-## 5.4 Step 3 正式实验（3D）
+## 5.4 Step 2 正式实验（3D）
 
 ### 场景配置
 
@@ -213,7 +214,7 @@
 
 ---
 
-## 5.5 Step 4 结束页 + 问卷
+## 5.5 Step 3 结束页 + 问卷
 
 ### 问卷结构
 
@@ -272,7 +273,7 @@
 
 ## 7.2 工程结构建议
 
-- `src/pages`：5 个步骤页面
+- `src/pages`：4 个步骤页面（教学与练习合并）
 - `src/three`：场景、模型、材质、交互控制
 - `src/components`：问答面板、计数器、加载层
 - `src/store`：流程状态与答题结果
@@ -372,7 +373,7 @@
 - `event_name`
 - `event_time`（ISO）
 - `session_id`
-- `step`（welcome/tutorial/practice/formal/survey）
+- `step`（welcome/practice/formal/survey）
 - `page_url`
 - `client_ts`（毫秒）
 - `device_info`（ua、屏幕分辨率）
@@ -531,7 +532,7 @@
 
 ## 13.1 功能验收
 
-- 5 个步骤可完整闭环走通
+- 4 个步骤可完整闭环走通
 - 练习题有反馈，正式题无反馈
 - 10 题完成后自动进入问卷
 - 必填问卷校验生效，提交可成功

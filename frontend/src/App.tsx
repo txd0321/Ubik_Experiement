@@ -198,7 +198,7 @@ function shuffleOptions(options: Option[]): Option[] {
 function getInitialStepFromQuery(): Step {
   const stepParam = new URLSearchParams(window.location.search).get('step')
   if (stepParam === 'welcome') return 'welcome'
-  if (stepParam === 'tutorial') return 'tutorial'
+  if (stepParam === 'tutorial') return 'practice'
   if (stepParam === 'practice') return 'practice'
   if (stepParam === 'formal') return 'formal'
   if (stepParam === 'survey') return 'survey'
@@ -550,16 +550,25 @@ function App() {
   const stepDurationMs = nowMs - stepStartAtRef.current
   const singleQuestionDurationMs = panelOpenAtRef.current ? nowMs - panelOpenAtRef.current : 0
 
+  const stepTextByStep: Record<Step, string> = {
+    welcome: '1.知情同意',
+    tutorial: '2.操作教学',
+    practice: '2.操作教学',
+    formal: '3.正式试验',
+    survey: '4.问卷与反馈',
+  }
+  const currentStepText = stepTextByStep[step]
+
   return (
     <div className={isSceneStep ? 'app-shell app-shell--scene' : 'app-shell'}>
-      {!isSceneStep && (
-        <header className="topbar">
-          <h1>《尤比克》物品退行认知实验平台</h1>
-          {step === 'formal' && (
-            <div className="counter">{formalAnswers.length}/10 已完成</div>
-          )}
-        </header>
-      )}
+      <header className={isSceneStep ? 'global-nav global-nav--overlay' : 'global-nav'}>
+        <div className="global-nav__brand">Ubik Experiment</div>
+        <div className="global-nav__step">
+          当前步骤：{currentStepText}
+          {step === 'formal' && <span className="global-nav__progress">（{formalAnswers.length}/10）</span>}
+        </div>
+        <div className="global-nav__time">进入平台总计：{formatDuration(totalDurationMs)}</div>
+      </header>
 
       {loading && <div className="loading">加载中，请稍候...</div>}
 
@@ -586,7 +595,7 @@ function App() {
             disabled={!consented}
             onClick={() => {
               track('start_experiment_click')
-              goToStep('tutorial')
+              goToStep('practice')
             }}
           >
             开始实验
@@ -594,37 +603,20 @@ function App() {
         </section>
       )}
 
-      {!loading && step === 'tutorial' && (
-        <section className="panel tutorial">
-          <div>
-            <h2>实验操作指南</h2>
-            <ol>
-              <li>键盘 WASD 控制移动</li>
-              <li>移动鼠标控制视角</li>
-              <li>点击发光物品弹出问答面板并作答</li>
-            </ol>
-            <button
-              onClick={() => {
-                track('enter_practice_click')
-                goToStep('practice')
-              }}
-            >
-              进入场景
-            </button>
-          </div>
-        </section>
-      )}
-
       {!loading && step === 'practice' && (
         <section className="scene-wrap">
-          <div className="scene-overlay-top">
-            <h1>Step 2 练习题（3D）</h1>
-            <button className="ghost-btn" onClick={() => goToStep('tutorial')}>
-              返回教学页
-            </button>
+          <div className="scene-overlay-top scene-overlay-top--tutorial">
+            <div>
+              <h1>操作教学</h1>
+              <ol>
+                <li>键盘 WASD 控制移动</li>
+                <li>移动鼠标控制视角</li>
+                <li>先靠近台灯，再点击发光物品开始练习答题</li>
+              </ol>
+            </div>
           </div>
 
-          <div className="scene">
+          <div className="scene scene--practice">
             <div className="scene-hud">
               <span>极简小房间 · 可交互物：LED 台灯</span>
               <span>先靠近台灯，再点击开始答题</span>
