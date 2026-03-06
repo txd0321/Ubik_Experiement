@@ -738,8 +738,7 @@ function App() {
 
       {!loading && step === 'formal' && (
         <section className="scene-wrap">
-          <div className="scene-overlay-top">
-            <h1>《尤比克》物品退行认知实验平台</h1>
+          <div className="scene-overlay-top scene-overlay-top--formal">
             <div className="scene-top-actions">
               <div className="counter counter--overlay">{formalAnswers.length}/10 已完成</div>
               <button className="ghost-btn" onClick={() => goToStep('survey')}>

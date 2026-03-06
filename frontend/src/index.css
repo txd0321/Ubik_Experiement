@@ -118,13 +118,20 @@ textarea {
   right: 16px;
   z-index: 12;
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   align-items: center;
   gap: 12px;
   background: rgba(255, 255, 255, 0.9);
   border: 1px solid #e6e6e6;
   border-radius: 12px;
   padding: 10px 14px;
+}
+
+.scene-overlay-top--formal {
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  padding: 0;
 }
 
 .scene-overlay-top h1 {
@@ -176,16 +183,19 @@ textarea {
   gap: 10px;
 }
 
-.counter--overlay {
-  background: #ffffff;
-  border: 1px solid #d9d9d9;
-  color: #333333;
+.counter.counter--overlay {
+  background: rgba(51, 51, 51, 0.6);
+  border: none;
+  color: #ffffff;
+  padding: 6px 12px;
+  border-radius: 8px;
 }
 
 .ghost-btn {
-  background: #ffffff;
-  border: 1px solid #d9d9d9;
-  color: #333333;
+  background: transparent;
+  border: none;
+  color: #ffffff;
+  padding: 0;
 }
 
 .topbar h1 {
