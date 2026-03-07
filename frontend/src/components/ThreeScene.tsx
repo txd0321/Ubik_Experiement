@@ -11,10 +11,16 @@ type SceneItem = {
   slotOverride?: number
 }
 
+type CameraState = {
+  position: { x: number; y: number; z: number }
+  rotation: { pitch: number; yaw: number; roll: number }
+}
+
 type ThreeSceneProps = {
   items: SceneItem[]
   onItemClick: (id: string) => void
   onActiveItemsChange?: (activeIds: string[]) => void
+  onCameraStateChange?: (state: CameraState) => void
   modelScaleMultiplier?: number
   showAxesHelper?: boolean
   renderUnusedSlots?: boolean
@@ -298,6 +304,7 @@ export default function ThreeScene({
   items,
   onItemClick,
   onActiveItemsChange,
+  onCameraStateChange,
   modelScaleMultiplier = 1,
   showAxesHelper = false,
   renderUnusedSlots = true,
@@ -311,6 +318,7 @@ export default function ThreeScene({
   const itemsRef = useRef<SceneItem[]>(items)
   const onItemClickRef = useRef(onItemClick)
   const onActiveItemsChangeRef = useRef(onActiveItemsChange)
+  const onCameraStateChangeRef = useRef(onCameraStateChange)
   const interactionLockedRef = useRef(interactionLocked)
 
   useEffect(() => {
@@ -324,6 +332,10 @@ export default function ThreeScene({
   useEffect(() => {
     onActiveItemsChangeRef.current = onActiveItemsChange
   }, [onActiveItemsChange])
+
+  useEffect(() => {
+    onCameraStateChangeRef.current = onCameraStateChange
+  }, [onCameraStateChange])
 
   useEffect(() => {
     interactionLockedRef.current = interactionLocked
@@ -950,6 +962,18 @@ export default function ThreeScene({
       }
 
       controls.update()
+      onCameraStateChangeRef.current?.({
+        position: {
+          x: camera.position.x,
+          y: camera.position.y,
+          z: camera.position.z,
+        },
+        rotation: {
+          pitch: camera.rotation.x,
+          yaw: camera.rotation.y,
+          roll: camera.rotation.z,
+        },
+      })
       renderer.render(scene, camera)
     }
 

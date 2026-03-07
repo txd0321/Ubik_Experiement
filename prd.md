@@ -173,138 +173,102 @@
 
 ## 5.3 Step 2 正式实验（3D）
 
-### 场景配置
+页面概述：正式试验的3d场景是一套完整的小户型家（包括卧室，厨房和厕所三个空间），卧室中有通往厨房和厕所的出入口，厨房只有通往卧室的出入口，厕所也只有通往卧室的出入口，厨房和厕所不相连。这整个空间其实是有两种状态的，一个是2030年的状态，一个是1930年的状态。用户初始进入时，整个家都处于2030年的状态下的，用户可以在这整个家中随意穿梭房间移动浏览。整个家中一共有20个可以答题互动的物件（包括卧室10个，厨房5个，厕所5个）除此之外其他都不是可交互物件，当用户靠近可互动的物体时，物体会发光，并变成可点击状态，点击该物体会弹出答题浮窗卡片，用户完成答题任务后，该物体会从2030年的物体变成相对应的1930年的物体（1930年的物体是不可点击状态），用户需要在这个空间中找到并完成20个物体的交互以及答题（会有计数提示），当用户完成了20个之后，弹出“恭喜你已完成所有任务”的提示浮窗，浮窗悬浮2s后，用户会发现空间中的所有其他的不可交互的物体，墙面灯光环境等都逐个变成1930年的状态。在这之后用户可以随意浏览。页面上最后弹出“退出实验”按钮，点击该按钮可以到step3页面。
 
-- 极简小房间
-- 1 个可交互物：LED 台灯
-- 初始视角朝向台灯
+### 页面元素（Step 2 页面内容）
 
-### 交互流程
+- **3D 场景主体**
+  - 卧室、厨房、厕所三空间联通结构（厨房/厕所仅与卧室相连）
+  - 页面初始为 **2030 状态**（可交互物件与非交互环境均为 2030 版本）
 
-1. 用户靠近并点击台灯
-2. 弹出题目面板（4 个图文选项）
-3. 选择后启用“确认选择”
-4. 点击确认后展示对错反馈
-5. 3 秒后显示“进入正式实验”按钮
+- **可交互物件层**
+  - 共 20 个可交互物件（卧室 10、厨房 5、厕所 5）
+  - 用户接近后高亮发光并进入可点击态；远离后恢复不可点击态
+  - 已完成物件替换为 1930 版本并锁定不可再次点击
 
-### 题目与反馈
+- **答题浮窗层**
+  - 点击可交互物件后弹出题卡（4 选 1）
+  - 包含：题干、4 个选项、`确认选择` 按钮
+  - 未选择选项前按钮禁用；提交后关闭题卡并触发物件替换动画
 
-- 题干：LED 台灯退行到 1960 年代最可能变成什么
-- 正确选项：煤油灯
-- 练习题需显示对错解释
+- **状态与流程 UI**
+  - 右上角进度：`X/20 已完成`
+  - 全部完成后显示提示：`恭喜你已完成所有任务`（约 2 秒）
+  - 全场景过渡到 1930 完成后显示 `退出实验` 按钮，点击进入 Step 3
 
-### 埋点事件
-
-- `practice_scene_loaded`
-- `practice_object_clicked`
-- `practice_option_selected`
-- `practice_answer_submitted`
-- `practice_feedback_shown`
-- `enter_formal_experiment_click`
-
----
-
-## 5.4 Step 2 正式实验（3D）
-
-### 场景配置
-
-●2026 现代客厅
-●10 个可交互物品（随机分布）
-（点击前者会弹出题目，答完题目之后会变成后者）
-喷雾 - 雾罐
-智能音箱 - 大喇叭
-投影仪 - 收音机
-环境灯-煤油灯
-笔记本电脑 - 机械打字机
-智能手机 - 牛皮纸信封
-数字钱包 - 钱袋与银币
-智能咖啡机 - 研磨机、铜炉
-中央空调 - 暖气片
-打火机 - 火柴盒
-●其他模型为非交互背景物品用于环境真实感
-
-
+- **数据采集相关页面要求（用户无感）**
+  - 页面进入 Step 2 后开始记录实验总时长
+  - 用户移动过程中持续记录路径轨迹（建议 1Hz）
+  - 每次题卡打开到提交记录单题作答时长
+  - 每个选项记录 hover 次数与累计悬浮时长（犹豫时间）
 
 ### 交互规则
 
-- 用户自由顺序答题（不强制路径）
-- 每题 4 选 1，选项顺序随机
-题目内容：
-1. 纳米修复喷雾 (Spray)
-A： 现代圆柱形运动水壶（visual）
-B： 老式马口铁气雾罐 （spray）（narrative）
-C： 游乐场旋转木马（baseline 无关项）
-D： 带有发光液体的魔法药水瓶（semantic）
-2. 智能音箱 (Soundbox)
-A： 现代头戴式无线耳机（semantic）
-B： 木质复古相框（baseline 无关项）
-C： 表面光滑的深灰色圆石（visual）
-D： 大喇叭铜质留声机（narrative）
-3. 全息投影仪 (Holographic Projector)
-A： 古董幻灯机（narrative）
-B： 铁制家用剪刀（bseline 无关项）
-C： 现代极简透明玻璃立方体/花瓶（visual）
-D： 宽屏超薄液晶显示器（semantic）
-4. 智能环境灯 (Smart Light)
-A： 强光手电筒（semantic）
-B： 手提式煤油马灯（narrative）
-C： 发光的磨砂白色乒乓球（visual）
-D： 玻璃水杯（baseline 无关项）
-5. 笔记本电脑 (Laptop)
-A： 传统的木框算盘（semantic）
-B： 雷明顿机械打字机（narrative）
-C： 银色不锈钢咖啡托盘（baseline 无关项）
-D： 折叠式便携梳妆镜（visual）
-6. 智能手机 (Smartphone)
-A： 牛皮纸信封（narrative）
-B： 火柴盒（semantic）
-C： 陶瓷烟灰缸（baseline 无关项）
-D： 黑色磨砂石板（visual）
-7. 数字钱包 (Digital Wallet)
-A： 黑色扁平充电宝（visual）
-B： 磨损的皮革钱袋与银币（narrative）
-C： 手持雨伞的手柄（baseline无关项）
-D： 纸质银行存折（semantic）
-8. 智能咖啡机 (Coffee Machine)
-A： 金属垃圾桶（visual）
-B： 旧报纸（baseline 无关项）
-C： 手摇研磨机、炭火铜炉（narrative）
-D： 咖啡包装袋（semantic）
-9. 智能中央空调 (Air Conditioner)
-A： 墙上的白色横梁（visual）
-B： 绿色盆栽（baseline 无关项）
-C： 三叶电风扇（semantic）
-D： 铸铁暖气片（narrative）
-10. 电浆打火机 (Electric Lighter)
-A： 塑料美发梳（baseline 无关项）
-B： 聚光放大镜（semantic）
-C： 木制火柴盒（narrative）
-D： 圆柱金属外壳口红（visual）
+- 用户可在整套空间内自由移动与浏览，不限制作答顺序
+- 只有可交互物件可触发题目，其他物件均为非交互背景
+- 距离触发前物件不可点击；触发后发光并可点击
+- 每个可交互物件仅可作答一次
+- 每次答题提交后，触发对应物件替换：
+  - 2030 物件退场
+  - 对应 1930 物件入场（1930 物件不可点击）
+- 20 个物件全部完成后：
+  - 先显示完成提示浮窗（约 2 秒）
+  - 再触发全场景非交互内容逐步从 2030 过渡到 1930（墙面/灯光/环境等）
+- 完成过渡后允许自由浏览，并显示“退出实验”按钮
 
-- 点击确认即记录，不反馈对错
-- 该2030年代物品会逐渐快速缩小到消失，然后相对应的1930年代物体会从0放大，像“嘭的一声”变出来的一样，状态切为灰色、不可重复答
-- 左上角计数器实时更新
-- 完成 10 题后页面中其他的除了可互动的物体之外所有的物体以及环境都逐渐切换成1930年的。
+### 题目内容（20 题）
 
-### 关键约束
+- 题目总数与可交互物件一一对应，共 20 题（卧室 10 + 厨房 5 + 厕所 5）
+- 每题为 4 选 1，点击“确认选择”提交
+- 选项顺序随机
+- 正式实验阶段不反馈对错，仅记录选择与时长
 
-- 选项图清晰可辨
-- 面板弹出时仍可观察场景
-- 全程无正误提示
+### 数据记录要求（Step 2 必须采集）
 
-### 埋点事件（每题）
+- **用户移动路径**
+  - 记录方式：实验进行中按固定频率采集相机位置轨迹（建议 1Hz）
+  - 最小字段：`session_id`、`step`、`ts`、`camera_position{x,y,z}`、`camera_rotation{pitch,yaw,roll}`（旋转可选）
+  - 用途：还原用户探索路径、空间停留与回访行为
 
+- **整个试验时间（Step 2 总时长）**
+  - 起点：进入 Step 2 且场景可交互时（`formal_scene_loaded` 后）
+  - 终点：点击“退出实验”按钮时
+  - 记录字段：`formal_started_at`、`formal_ended_at`、`formal_duration_ms`
+
+- **单题作答时间**
+  - 起点：题卡弹出时
+  - 终点：点击“确认选择”提交时
+  - 记录字段：`question_opened_at`、`question_submitted_at`、`question_duration_ms`
+
+- **选项悬浮犹豫时间**
+  - 定义：鼠标悬停在某选项上的累计停留时长（可用于衡量犹豫程度）
+  - 记录方式：
+    - 进入选项时记录 `hover_start_at`
+    - 离开选项时累计 `hover_duration_ms`
+    - 每题按选项汇总：`option_hover_duration_ms_map`
+  - 示例字段：`question_id`、`option_id`、`hover_count`、`hover_duration_ms_total`
+
+### 埋点事件
+
+- `formal_scene_loaded`
+- `formal_path_tick`（1Hz 轨迹采样）
+- `formal_object_nearby`
 - `formal_object_clicked`
 - `formal_question_opened`
-- `formal_option_hover`（可选）
+- `formal_option_hover_start`
+- `formal_option_hover_end`
 - `formal_option_selected`
 - `formal_answer_submitted`
+- `formal_item_transformed`
 - `formal_progress_updated`
 - `formal_all_completed`
+- `formal_environment_transition_started`
+- `formal_environment_transition_finished`
+- `formal_exit_experiment_click`
 
 ---
 
-## 5.5 Step 3 结束页 + 问卷
+## 5.4 Step 3 结束页 + 问卷
 
 ### 问卷结构
 
@@ -685,3 +649,60 @@ D： 圆柱金属外壳口红（visual）
 1）**接口字段级 JSON 示例**（可直接给前后端联调）；
 2）**MySQL/PostgreSQL 建表 SQL**；
 3）**前端埋点事件字典表（Excel 结构）**。
+
+07/03命名修改清单
+修改前 ｜ 修改后
+2030_time_spray ｜ itr_01_2030_spray_bedroom
+2030_soundbox	｜ itr_02_2030_soundbox_bedroom
+
+2030_projector_02	｜ itr_03_2030_holographicProjector_bedroom
+
+2030_light	｜ itr_04_2030_smartLight_bedroom
+
+2030_laptop	｜ itr_05_2030_laptop_bedroom
+
+2030_handphone	｜ itr_06_2030_smartPhone_bedroom
+
+2030_digital_wallet	｜ itr_07_2030_digitalWallet_bedroom
+
+2030_coffee_machine	｜ itr_08_2030_coffeeMachine_bedroom
+
+2030_air_conditioner ｜ itr_09_2030_airConditioner_bedroom
+
+2030_lighter	｜ itr_10_2030_electricLighter_bedroom
+
+1930_time_spray ｜ itr_01_1930_spray_bedroom
+
+
+1930_trumpet ｜ itr_02_1930_phonograph_bedroom
+
+1930_radio ｜ itr_03_1930_radio_bedroom
+
+
+1930_light	｜ itr_04_1930_0_keroseneLamp_bedroom
+
+1930_typewriter	｜ itr_05_1930_0_typewriter_bedroom
+
+1930_envelop	｜ itr_06_1930_envelope_bedroom
+
+1930_bag	｜ itr_07_1930_purse_bedroom
+
+1930_handmade_coffee	｜ itr_08_1930_handmadeCoffeeTools_bedroom
+
+1930_heating	｜ itr_09_1930_heating_bedroom
+
+1930_matchstick	｜ itr_10_1930_matchstick_bedroom
+
+第二轮修改
+修改前 ｜ 修改后
+itr_03_2030_holographicProjector_bedroom	｜ itr_03_2030_holographicProjectorA_bedroom
+2030_projector_01	｜ itr_03_2030_holographicProjectorB_bedroom
+2030_table	｜ nonitr_01_2030_table_bedroom
+2030_bed	｜ nonitr_02_2030_bed_bedroom
+2030_tea_table	｜ nonitr_03_2030_teaTable_bedroom
+2030_chair	｜ nonitr_04_2030_chair_bedroom
+2030_sofa	｜nonitr_05_2030_sofa_bedroom
+2030_door ｜ nonitr_06_2030_frontDoor_bedroom
+2030_computer	｜ nonitr_07_2030_roboticTree_bedroom
+1930_table	｜ nonitr_01_1930_table_bedroom
+1930_door	｜ nonitr_06_1930_frontDoor_bedrom
