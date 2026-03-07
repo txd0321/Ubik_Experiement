@@ -210,6 +210,10 @@ function getInitialStepFromQuery(): Step {
   return 'welcome'
 }
 
+function isFormalExitPreviewEnabled() {
+  return new URLSearchParams(window.location.search).get('previewFormalExit') === '1'
+}
+
 function App() {
   const [step, setStep] = useState<Step>(() => getInitialStepFromQuery())
   const [sessionId, setSessionId] = useState('')
@@ -230,7 +234,7 @@ function App() {
   const [formalSelected, setFormalSelected] = useState('')
   const [formalAnswers, setFormalAnswers] = useState<FormalAnswer[]>([])
   const [formalCompleted, setFormalCompleted] = useState(false)
-  const [showFormalExitButton, setShowFormalExitButton] = useState(false)
+  const [showFormalExitButton, setShowFormalExitButton] = useState(() => isFormalExitPreviewEnabled())
 
   const [surveyData, setSurveyData] = useState<SurveyData>({
     taskDifficulty: '',
@@ -325,7 +329,7 @@ function App() {
     if (step === 'formal') {
       formalStepStartedAtRef.current = Date.now()
       setFormalCompleted(false)
-      setShowFormalExitButton(false)
+      setShowFormalExitButton(isFormalExitPreviewEnabled())
       track('formal_scene_loaded')
     }
   }, [sessionId, step])
@@ -881,11 +885,11 @@ function App() {
             <div className="scene-top-actions">
               <div className="counter counter--overlay">{formalAnswers.length}/{FORMAL_ITEMS.length} 已完成</div>
               {showFormalExitButton ? (
-                <button className="ghost-btn" onClick={exitFormalToSurvey}>
+                <button className="ghost-btn ghost-btn--formal-exit" onClick={exitFormalToSurvey}>
                   退出实验
                 </button>
               ) : (
-                <span className="ghost-btn" style={{ opacity: 0.7, pointerEvents: 'none' }}>
+                <span className="ghost-btn ghost-btn--formal-exit-tip" style={{ opacity: 0.7, pointerEvents: 'none' }}>
                   完成全部题目后可退出
                 </span>
               )}

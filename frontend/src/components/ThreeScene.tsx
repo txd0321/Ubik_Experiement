@@ -146,8 +146,8 @@ const ITEM_CONFIGS: ItemPlacementConfig[] = [
   },
   {
     modelPath: '/assets/models/itr_04_2030_smartLight_bedroom.glb',
-    position: [5.8, 1.2, -6.2],
-    targetSize: 1.1,
+    position: [1, 6, -7.5],
+    targetSize: 1.6,
     rotationY: 0,
   },
 ]
@@ -160,6 +160,8 @@ type ItemVisual = {
   placeholder: THREE.Mesh | null
   emissiveMaterials: THREE.MeshStandardMaterial[]
   glowHalo: THREE.Mesh
+  haloBaseScale: number
+  haloPulseAmplitude: number
   suppressAnsweredGreen: boolean
   answered: boolean
   active: boolean
@@ -978,6 +980,10 @@ export default function ThreeScene({
       glowHalo.visible = false
       root.add(glowHalo)
 
+      const targetSize = ITEM_CONFIGS[slot]?.targetSize ?? 1
+      const haloBaseScale = THREE.MathUtils.clamp(0.62 + targetSize * 0.06, 0.72, 1.15)
+      const haloPulseAmplitude = THREE.MathUtils.clamp(0.06 + targetSize * 0.012, 0.07, 0.15)
+
       const visual: ItemVisual = {
         id: item.id,
         slot,
@@ -986,6 +992,8 @@ export default function ThreeScene({
         placeholder,
         emissiveMaterials: [],
         glowHalo,
+        haloBaseScale,
+        haloPulseAmplitude,
         suppressAnsweredGreen,
         answered: item.answered,
         active: false,
@@ -1216,7 +1224,7 @@ export default function ThreeScene({
         const haloMat = visual.glowHalo.material as THREE.MeshBasicMaterial
         if (visual.active && !visual.answered) {
           const pulse = (Math.sin(elapsed * 4.2) + 1) / 2
-          const scale = 0.88 + pulse * 0.1
+          const scale = visual.haloBaseScale + pulse * visual.haloPulseAmplitude
           visual.glowHalo.scale.setScalar(scale)
           haloMat.opacity = 0.1 + pulse * 0.1
         }

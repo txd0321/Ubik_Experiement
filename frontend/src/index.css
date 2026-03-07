@@ -198,6 +198,36 @@ textarea {
   padding: 0;
 }
 
+.ghost-btn--formal-exit,
+.ghost-btn--formal-exit-tip {
+  position: fixed;
+  left: 50%;
+  bottom: 108px;
+  transform: translateX(-50%);
+  z-index: 18;
+}
+
+.ghost-btn--formal-exit {
+  color: #ffffff;
+  background: rgba(17, 24, 39, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: 999px;
+  padding: 12px 24px;
+  font-size: 22px;
+  font-weight: 700;
+  backdrop-filter: blur(2px);
+}
+
+.ghost-btn--formal-exit-tip {
+  color: rgba(255, 255, 255, 0.82);
+  background: rgba(17, 24, 39, 0.52);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 999px;
+  padding: 12px 24px;
+  font-size: 18px;
+  font-weight: 700;
+}
+
 .topbar h1 {
   margin: 0;
   font-size: 24px;
