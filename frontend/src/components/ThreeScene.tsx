@@ -1,7 +1,8 @@
-import { useEffect, useRef } from 'react'
+import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js'
+import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 
 type SceneItem = {
@@ -24,8 +25,13 @@ type ThreeSceneProps = {
   interactionLocked?: boolean
 }
 
-const ROOM_SIZE = 16
-const ROOM_HEIGHT = 8
+export type ThreeSceneHandle = {
+  getCameraState: () => { position: [number, number, number]; direction: [number, number, number] } | null
+  captureScreenshot: (width: number, height: number, quality?: number) => string
+}
+
+export const ROOM_SIZE = 16
+export const ROOM_HEIGHT = 8
 const CAMERA_EYE_HEIGHT = ROOM_HEIGHT / 2
 const INTERACT_DISTANCE = 4.2
 const GLOBAL_MODEL_SCALE = 0.9
@@ -41,105 +47,105 @@ type ItemPlacementConfig = {
 // 手动调参区：统一管理所有模型的坐标/缩放/Y轴旋转
 const ITEM_CONFIGS: ItemPlacementConfig[] = [
   {
-    modelPath: '/assets/models/2030_air_conditioner.glb',
+    modelPath: '/assets/models/2030_air_conditioner_opt.glb',
     position: [-7.5, 6, 4],
     targetSize: 6,
     rotationY: Math.PI/2,
   },
   {
-    modelPath: '/assets/models/2030_coffee_machine.glb',
+    modelPath: '/assets/models/2030_coffee_machine_opt.glb',
     position: [-7, 2, -7],
     targetSize: 3.2,
     rotationY: 0,
   },
   {
-    modelPath: '/assets/models/2030_computer.glb',
+    modelPath: '/assets/models/2030_computer_opt.glb',
     position: [1, 0, -7],
     targetSize: 6.2,
     rotationY: 0,
   },
   {
-    modelPath: '/assets/models/2030_digital_wallet.glb',
+    modelPath: '/assets/models/2030_digital_wallet_opt.glb',
     position: [-2,1, 5.4],
     targetSize: 1.1,
     rotationY: Math.PI / 2,
   },
   {
-    modelPath: '/assets/models/2030_door.glb',
+    modelPath: '/assets/models/2030_door_opt.glb',
     position: [6, 0, -8],
     targetSize: 8,
     rotationY: 0,
   },
   {
-    modelPath: '/assets/models/2030_handphone.glb',
+    modelPath: '/assets/models/2030_handphone_opt.glb',
     position: [-6, 2, -5],
     targetSize: 1.2,
     rotationY: 0,
   },
   {
-    modelPath: '/assets/models/2030_laptop.glb',
+    modelPath: '/assets/models/2030_laptop_opt.glb',
     position: [-4, 2, -5.6],
     targetSize: 2,
     rotationY: 0,
   },
   {
-    modelPath: '/assets/models/2030_soundbox.glb',
+    modelPath: '/assets/models/2030_soundbox_opt.glb',
     position: [-6.8, 6, -7.5],
     targetSize: 2.4,
     rotationY: 0.5,
   },
   {
-    modelPath: '/assets/models/2030_table.glb',
+    modelPath: '/assets/models/2030_table_opt.glb',
     position: [-4.8, 0, -5.7],
     targetSize: 7,
     rotationY: 0,
   },
   {
-    modelPath: '/assets/models/2030_time_spray.glb',
+    modelPath: '/assets/models/2030_time_spray_opt.glb',
     position: [-3, 1.45, 5.5],
     targetSize: 1.5,
     rotationY: 0,
     rotationZ: -Math.PI / 2,
   },
   {
-    modelPath: '/assets/models/2030_chair.glb',
+    modelPath: '/assets/models/2030_chair_opt.glb',
     position: [-5, 0, -1.5],
     targetSize: 4,
     rotationY: Math.PI*5/6,
   },
   {
-    modelPath: '/assets/models/2030_sofa.glb',
+    modelPath: '/assets/models/2030_sofa_opt.glb',
     position: [-6.5, 0, 4.5],
     targetSize: 6.5,
     rotationY: Math.PI/2,
   },
   {
-    modelPath: '/assets/models/2030_bed.glb',
+    modelPath: '/assets/models/2030_bed_opt.glb',
     position: [4.6, 0,4.6],
     targetSize: 7.5,
     rotationY: -Math.PI / 1,
   },
   // ===== 新增模型手动调参（和上面同格式）=====
   {
-    modelPath: '/assets/models/2030_tea_table.glb',
+    modelPath: '/assets/models/2030_tea_table_opt.glb',
     position: [-2.5, 0, 4.5],
     targetSize: 4,
     rotationY: Math.PI / 2,
   },
   {
-    modelPath: '/assets/models/2030_lighter.glb',
+    modelPath: '/assets/models/2030_lighter_opt.glb',
     position: [6, 1, -6.5],
     targetSize: 1,
     rotationY: Math.PI / 5,
   },
   {
-    modelPath: '/assets/models/2030_projector_01.glb',
+    modelPath: '/assets/models/2030_projector_01_opt.glb',
     position: [8, 2, 4.2],
     targetSize: 7.5,
     rotationY: Math.PI/2,
   },
   {
-    modelPath: '/assets/models/2030_projector_02.glb',
+    modelPath: '/assets/models/2030_projector_02_opt.glb',
     position: [-1.8, 1.02, 3.6],
     targetSize: 1.4,
     rotationY: Math.PI / 2,
@@ -161,6 +167,9 @@ type ItemVisual = {
   futureModel: THREE.Object3D | null
   transitioningToHistoric: boolean
   hasSwitchedToHistoric: boolean
+  isExtraSlot: boolean
+  prevAnswered: boolean
+  prevActive: boolean
 }
 
 type SceneCore = {
@@ -180,25 +189,25 @@ type SceneCore = {
 const EXTRA_ITEM_ID_PREFIX = '__extra_slot_'
 
 const NO_GREEN_MODEL_PATHS = new Set([
-  '/assets/models/2030_chair.glb',
-  '/assets/models/2030_sofa.glb',
-  '/assets/models/2030_bed.glb',
-  '/assets/models/2030_tea_table.glb',
-  '/assets/models/2030_lighter.glb',
-  '/assets/models/2030_projecter_01.glb',
-  '/assets/models/2030_projecter_02.glb',
+  '/assets/models/2030_chair_opt.glb',
+  '/assets/models/2030_sofa_opt.glb',
+  '/assets/models/2030_bed_opt.glb',
+  '/assets/models/2030_tea_table_opt.glb',
+  '/assets/models/2030_lighter_opt.glb',
+  '/assets/models/2030_projector_01_opt.glb',
+  '/assets/models/2030_projector_02_opt.glb',
 ])
 
 const HISTORIC_MODEL_BY_SLOT: Partial<Record<number, string>> = {
-  0: '/assets/models/1930_heating.glb',
-  1: '/assets/models/1930_handmade_coffee.glb',
-  3: '/assets/models/1930_bag.glb',
-  5: '/assets/models/1930_envelop.glb',
-  6: '/assets/models/1930_typewriter.glb',
-  7: '/assets/models/1930_radio.glb',
-  9: '/assets/models/1930_time_spray.glb',
-  14: '/assets/models/1930_matchstick.glb',
-  15: '/assets/models/1930_light.glb',
+  0: '/assets/models/1930_heating_opt.glb',
+  1: '/assets/models/1930_handmade_coffee_opt.glb',
+  3: '/assets/models/1930_bag_opt.glb',
+  5: '/assets/models/1930_envelop_opt.glb',
+  6: '/assets/models/1930_typewriter_opt.glb',
+  7: '/assets/models/1930_radio_opt.glb',
+  9: '/assets/models/1930_time_spray_opt.glb',
+  14: '/assets/models/1930_matchstick_opt.glb',
+  15: '/assets/models/1930_light_opt.glb',
 }
 
 function fitModelToTarget(model: THREE.Object3D, targetSize = 1.1) {
@@ -221,15 +230,15 @@ function fitModelToTarget(model: THREE.Object3D, targetSize = 1.1) {
   model.position.y -= minY
 }
 
-function collectEmissiveMaterials(root: THREE.Object3D) {
+function collectEmissiveMaterials(root: THREE.Object3D, enableShadows = true) {
   const materials: THREE.MeshStandardMaterial[] = []
 
-  root.traverse((obj) => {
+  root.traverse((obj: THREE.Object3D) => {
     const mesh = obj as THREE.Mesh
     if (!mesh.isMesh) return
 
-    mesh.castShadow = true
-    mesh.receiveShadow = true
+    mesh.castShadow = enableShadows
+    mesh.receiveShadow = enableShadows
 
     const mat = mesh.material
     if (Array.isArray(mat)) {
@@ -294,7 +303,7 @@ function updateVisualAppearance(visual: ItemVisual) {
   }
 }
 
-export default function ThreeScene({
+const ThreeScene = forwardRef<ThreeSceneHandle, ThreeSceneProps>(function ThreeScene({
   items,
   onItemClick,
   onActiveItemsChange,
@@ -305,13 +314,39 @@ export default function ThreeScene({
   initialTarget,
   scenePreset = 'default',
   interactionLocked = false,
-}: ThreeSceneProps) {
+}, ref) {
   const mountRef = useRef<HTMLDivElement | null>(null)
   const coreRef = useRef<SceneCore | null>(null)
   const itemsRef = useRef<SceneItem[]>(items)
   const onItemClickRef = useRef(onItemClick)
   const onActiveItemsChangeRef = useRef(onActiveItemsChange)
   const interactionLockedRef = useRef(interactionLocked)
+
+  useImperativeHandle(ref, () => ({
+    getCameraState() {
+      const core = coreRef.current
+      if (!core) return null
+      const { camera } = core
+      const direction = new THREE.Vector3()
+      camera.getWorldDirection(direction)
+      return {
+        position: [camera.position.x, camera.position.y, camera.position.z] as [number, number, number],
+        direction: [direction.x, direction.y, direction.z] as [number, number, number],
+      }
+    },
+    captureScreenshot(width: number, height: number, quality = 0.6) {
+      const core = coreRef.current
+      if (!core) return ''
+      const { renderer } = core
+      const canvas = document.createElement('canvas')
+      canvas.width = width
+      canvas.height = height
+      const ctx = canvas.getContext('2d')
+      if (!ctx) return ''
+      ctx.drawImage(renderer.domElement, 0, 0, width, height)
+      return canvas.toDataURL('image/jpeg', quality)
+    },
+  }), [])
 
   useEffect(() => {
     itemsRef.current = items
@@ -327,6 +362,11 @@ export default function ThreeScene({
 
   useEffect(() => {
     interactionLockedRef.current = interactionLocked
+    const core = coreRef.current
+    if (core) {
+      core.controls.enableRotate = !interactionLocked
+      core.controls.enablePan = false
+    }
     if (interactionLocked) {
       const mount = mountRef.current
       const canvas = mount?.querySelector('canvas') as HTMLCanvasElement | null
@@ -351,7 +391,7 @@ export default function ThreeScene({
     renderer.setSize(mount.clientWidth, mount.clientHeight)
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
     renderer.shadowMap.enabled = true
-    renderer.shadowMap.type = THREE.PCFSoftShadowMap
+    renderer.shadowMap.type = THREE.PCFShadowMap
     renderer.outputColorSpace = THREE.SRGBColorSpace
     renderer.toneMapping = THREE.ACESFilmicToneMapping
     renderer.toneMappingExposure = 1.25
@@ -360,6 +400,7 @@ export default function ThreeScene({
 
     const controls = new OrbitControls(camera, renderer.domElement)
     controls.enableDamping = true
+    controls.enablePan = false
     const targetPos = initialTarget ?? [0, CAMERA_EYE_HEIGHT, 0]
     controls.target.set(targetPos[0], targetPos[1], targetPos[2])
     controls.update()
@@ -549,7 +590,7 @@ export default function ThreeScene({
     const ceilingLight = new THREE.PointLight(0xfff4e8, 2.4, 28, 2)
     ceilingLight.position.set(0, ROOM_HEIGHT - 0.15, 0)
     ceilingLight.castShadow = true
-    ceilingLight.shadow.mapSize.set(1024, 1024)
+    ceilingLight.shadow.mapSize.set(512, 512)
     scene.add(ceilingLight)
 
     const fillLight = new THREE.DirectionalLight(0xdde7ff, 1.1)
@@ -582,7 +623,10 @@ export default function ThreeScene({
     const visualsById = new Map<string, ItemVisual>()
     const slotById = new Map<string, number>()
 
+    const dracoLoader = new DRACOLoader()
+    dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.7/')
     const gltfLoader = new GLTFLoader()
+    gltfLoader.setDRACOLoader(dracoLoader)
     const modelCache = new Map<number, THREE.Object3D>()
     const historicModelCache = new Map<number, THREE.Object3D>()
 
@@ -645,7 +689,7 @@ export default function ThreeScene({
 
         visual.root.add(modelInstance)
         visual.clickable = modelInstance
-        visual.emissiveMaterials = collectEmissiveMaterials(modelInstance)
+        visual.emissiveMaterials = collectEmissiveMaterials(modelInstance, !visual.isExtraSlot)
         updateVisualAppearance(visual)
       } catch {
         // keep placeholder when loading fails
@@ -682,11 +726,12 @@ export default function ThreeScene({
       }
     }
 
-    const createItemVisual = (item: SceneItem, slot: number) => {
+    const createItemVisual = (item: SceneItem, slot: number, isExtraSlot = false) => {
       const config = ITEM_CONFIGS[slot]
       if (!config) return
       const [x, y, z] = config.position
       const suppressAnsweredGreen = NO_GREEN_MODEL_PATHS.has(config.modelPath)
+      const enableShadows = !isExtraSlot
 
       const root = new THREE.Group()
       root.position.set(x, y, z)
@@ -703,12 +748,12 @@ export default function ThreeScene({
           metalness: 0.1,
         }),
       )
-      placeholder.castShadow = true
-      placeholder.receiveShadow = true
+      placeholder.castShadow = enableShadows
+      placeholder.receiveShadow = enableShadows
       root.add(placeholder)
 
       const glowHalo = new THREE.Mesh(
-        new THREE.SphereGeometry(1.25, 28, 28),
+        new THREE.SphereGeometry(1.25, 16, 16),
         new THREE.MeshBasicMaterial({
           color: '#ffd84d',
           transparent: true,
@@ -734,6 +779,9 @@ export default function ThreeScene({
         futureModel: null,
         transitioningToHistoric: false,
         hasSwitchedToHistoric: false,
+        isExtraSlot,
+        prevAnswered: item.answered,
+        prevActive: false,
       }
 
       visualsById.set(item.id, visual)
@@ -749,7 +797,6 @@ export default function ThreeScene({
     })
 
     if (renderUnusedSlots) {
-      // 对于配置中未被题目 items 占用的槽位，也渲染为静态模型，便于手动调参预览
       const usedSlots = new Set<number>(Array.from(slotById.values()))
       ITEM_CONFIGS.forEach((_, slot) => {
         if (usedSlots.has(slot)) return
@@ -760,6 +807,7 @@ export default function ThreeScene({
             answered: true,
           },
           slot,
+          true,
         )
       })
     }
@@ -842,28 +890,35 @@ export default function ThreeScene({
     let raf = 0
     const clock = new THREE.Clock()
     let lastActiveIdsKey = ''
+    const floorDarkColor = new THREE.Color('#252525')
+    let taskVisualsList: ItemVisual[] | null = null
+    const activeIdsBuffer: string[] = []
+    const _forward = new THREE.Vector3()
+    const _right = new THREE.Vector3()
+    const _movement = new THREE.Vector3()
+    const _flatCamPos = new THREE.Vector3()
 
     const animate = () => {
       raf = requestAnimationFrame(animate)
       const delta = clock.getDelta()
 
-      const forward = new THREE.Vector3()
-      camera.getWorldDirection(forward)
-      forward.y = 0
-      if (forward.lengthSq() > 0) forward.normalize()
+      _forward.set(0, 0, 0)
+      camera.getWorldDirection(_forward)
+      _forward.y = 0
+      if (_forward.lengthSq() > 0) _forward.normalize()
 
-      const right = new THREE.Vector3().crossVectors(forward, camera.up).normalize()
-      const movement = new THREE.Vector3()
+      _right.crossVectors(_forward, camera.up).normalize()
+      _movement.set(0, 0, 0)
 
-      if (moveState.KeyW) movement.add(forward)
-      if (moveState.KeyS) movement.sub(forward)
-      if (moveState.KeyA) movement.sub(right)
-      if (moveState.KeyD) movement.add(right)
+      if (moveState.KeyW) _movement.add(_forward)
+      if (moveState.KeyS) _movement.sub(_forward)
+      if (moveState.KeyA) _movement.sub(_right)
+      if (moveState.KeyD) _movement.add(_right)
 
-      if (movement.lengthSq() > 0) {
-        movement.normalize().multiplyScalar(moveSpeed * delta)
-        camera.position.add(movement)
-        controls.target.add(movement)
+      if (_movement.lengthSq() > 0) {
+        _movement.normalize().multiplyScalar(moveSpeed * delta)
+        camera.position.add(_movement)
+        controls.target.add(_movement)
 
         camera.position.x = THREE.MathUtils.clamp(camera.position.x, -7.2, 7.2)
         camera.position.z = THREE.MathUtils.clamp(camera.position.z, -7.2, 7.2)
@@ -876,12 +931,14 @@ export default function ThreeScene({
       visualsById.forEach((visual) => {
         visual.root.position.y = visual.baseY
 
-        const flatCameraPos = new THREE.Vector3(camera.position.x, visual.baseY, camera.position.z)
-        const distance = visual.root.position.distanceTo(flatCameraPos)
-        visual.active = !visual.answered && distance <= INTERACT_DISTANCE
+        if (!visual.isExtraSlot) {
+          _flatCamPos.set(camera.position.x, visual.baseY, camera.position.z)
+          const distance = visual.root.position.distanceTo(_flatCamPos)
+          visual.active = !visual.answered && distance <= INTERACT_DISTANCE
+        }
 
-        const haloMat = visual.glowHalo.material as THREE.MeshBasicMaterial
         if (visual.active && !visual.answered) {
+          const haloMat = visual.glowHalo.material as THREE.MeshBasicMaterial
           const pulse = (Math.sin(elapsed * 4.2) + 1) / 2
           const scale = 1.12 + pulse * 0.14
           visual.glowHalo.scale.setScalar(scale)
@@ -904,12 +961,12 @@ export default function ThreeScene({
 
             if (histScale >= targetScale && nextScale <= 0.02) {
               visual.root.remove(visual.clickable)
-              visual.clickable.traverse((obj) => {
+              visual.clickable.traverse((obj: THREE.Object3D) => {
                 const mesh = obj as THREE.Mesh
                 if (!mesh.isMesh) return
                 mesh.geometry.dispose()
                 if (Array.isArray(mesh.material)) {
-                  mesh.material.forEach((m) => m.dispose())
+                  mesh.material.forEach((m: THREE.Material) => m.dispose())
                 } else {
                   mesh.material.dispose()
                 }
@@ -923,30 +980,38 @@ export default function ThreeScene({
           }
         }
 
-        updateVisualAppearance(visual)
+        const stateChanged = visual.prevAnswered !== visual.answered || visual.prevActive !== visual.active
+        if (stateChanged || visual.transitioningToHistoric) {
+          updateVisualAppearance(visual)
+          visual.prevAnswered = visual.answered
+          visual.prevActive = visual.active
+        }
       })
 
+      if (taskVisualsList === null) {
+        taskVisualsList = Array.from(visualsById.values()).filter(
+          (visual) => !visual.id.startsWith(EXTRA_ITEM_ID_PREFIX),
+        )
+      }
       const allAnswered =
         scenePreset === 'default' &&
-        Array.from(visualsById.values())
-          .filter((visual) => !visual.id.startsWith(EXTRA_ITEM_ID_PREFIX)).length > 0 &&
-        Array.from(visualsById.values())
-          .filter((visual) => !visual.id.startsWith(EXTRA_ITEM_ID_PREFIX))
-          .every((visual) => visual.answered)
+        taskVisualsList.length > 0 &&
+        taskVisualsList.every((visual) => visual.answered)
 
       if (allAnswered) {
         roomMaterial.emissiveIntensity = THREE.MathUtils.lerp(roomMaterial.emissiveIntensity, 0.28, 0.02)
-        floorMaterial.color.lerp(new THREE.Color('#252525'), 0.02)
+        floorMaterial.color.lerp(floorDarkColor, 0.02)
       }
 
-      const activeIds = Array.from(visualsById.values())
-        .filter((visual) => visual.active && !visual.id.startsWith(EXTRA_ITEM_ID_PREFIX))
-        .map((visual) => visual.id)
-        .sort()
-      const activeIdsKey = activeIds.join('|')
+      activeIdsBuffer.length = 0
+      for (const visual of taskVisualsList) {
+        if (visual.active) activeIdsBuffer.push(visual.id)
+      }
+      activeIdsBuffer.sort()
+      const activeIdsKey = activeIdsBuffer.join('|')
       if (activeIdsKey !== lastActiveIdsKey) {
         lastActiveIdsKey = activeIdsKey
-        onActiveItemsChangeRef.current?.(activeIds)
+        onActiveItemsChangeRef.current?.([...activeIdsBuffer])
       }
 
       controls.update()
@@ -981,16 +1046,17 @@ export default function ThreeScene({
       renderer.domElement.removeEventListener('click', onClick)
       renderer.domElement.style.cursor = 'default'
 
+      dracoLoader.dispose()
       controls.dispose()
       pmremGenerator.dispose()
       envRT.dispose()
 
-      scene.traverse((obj) => {
+      scene.traverse((obj: THREE.Object3D) => {
         const mesh = obj as THREE.Mesh
         if (mesh.isMesh) {
           mesh.geometry.dispose()
           if (Array.isArray(mesh.material)) {
-            mesh.material.forEach((material) => material.dispose())
+            mesh.material.forEach((material: THREE.Material) => material.dispose())
           } else {
             mesh.material.dispose()
           }
@@ -1059,4 +1125,6 @@ export default function ThreeScene({
   }, [items])
 
   return <div className="three-mount" ref={mountRef} />
-}
+})
+
+export default ThreeScene
