@@ -360,6 +360,10 @@ export default function ThreeScene({
 
     const controls = new OrbitControls(camera, renderer.domElement)
     controls.enableDamping = true
+    controls.enablePan = false
+    controls.enableZoom = true
+    controls.minDistance = 4.8
+    controls.maxDistance = 5.2
     const targetPos = initialTarget ?? [0, CAMERA_EYE_HEIGHT, 0]
     controls.target.set(targetPos[0], targetPos[1], targetPos[2])
     controls.update()
@@ -441,12 +445,265 @@ export default function ThreeScene({
       metalness: scenePreset === 'practice' ? 0.02 : 0.18,
       emissive: new THREE.Color(scenePreset === 'practice' ? '#000000' : '#2e1a66'),
       emissiveIntensity: scenePreset === 'practice' ? 0 : 0.14,
-      side: THREE.BackSide,
+      side: THREE.DoubleSide,
     })
-    const room = new THREE.Mesh(new THREE.BoxGeometry(ROOM_SIZE, ROOM_HEIGHT, ROOM_SIZE), roomMaterial)
-    room.position.y = ROOM_HEIGHT / 2
-    room.receiveShadow = true
-    scene.add(room)
+    if (scenePreset === 'practice') {
+      const room = new THREE.Mesh(new THREE.BoxGeometry(ROOM_SIZE, ROOM_HEIGHT, ROOM_SIZE), roomMaterial)
+      room.position.y = ROOM_HEIGHT / 2
+      room.receiveShadow = true
+      scene.add(room)
+    } else {
+      const wallThickness = 0.08
+      const wallGroup = new THREE.Group()
+
+      const westWall = new THREE.Mesh(
+        new THREE.BoxGeometry(wallThickness, ROOM_HEIGHT, ROOM_SIZE),
+        roomMaterial,
+      )
+      westWall.position.set(-ROOM_SIZE / 2, ROOM_HEIGHT / 2, 0)
+      wallGroup.add(westWall)
+
+      const northWall = new THREE.Mesh(
+        new THREE.BoxGeometry(ROOM_SIZE, ROOM_HEIGHT, wallThickness),
+        roomMaterial,
+      )
+      northWall.position.set(0, ROOM_HEIGHT / 2, -ROOM_SIZE / 2)
+      wallGroup.add(northWall)
+
+      // 南侧墙（z=8）开门洞：中心 x=-4，宽3，高7（通往厕所）
+      const southTop = new THREE.Mesh(
+        new THREE.BoxGeometry(3, ROOM_HEIGHT - 7, wallThickness),
+        roomMaterial,
+      )
+      southTop.position.set(-4, 7 + (ROOM_HEIGHT - 7) / 2, ROOM_SIZE / 2)
+      wallGroup.add(southTop)
+
+      const southLeft = new THREE.Mesh(
+        new THREE.BoxGeometry(2.5, ROOM_HEIGHT, wallThickness),
+        roomMaterial,
+      )
+      southLeft.position.set(-6.75, ROOM_HEIGHT / 2, ROOM_SIZE / 2)
+      wallGroup.add(southLeft)
+
+      const southRight = new THREE.Mesh(
+        new THREE.BoxGeometry(10.5, ROOM_HEIGHT, wallThickness),
+        roomMaterial,
+      )
+      southRight.position.set(2.75, ROOM_HEIGHT / 2, ROOM_SIZE / 2)
+      wallGroup.add(southRight)
+
+      const ceiling = new THREE.Mesh(
+        new THREE.PlaneGeometry(ROOM_SIZE, ROOM_SIZE),
+        new THREE.MeshStandardMaterial({
+          color: 0xffffff,
+          map: scenePreset === 'practice' ? null : wallpaperMap,
+          normalMap: scenePreset === 'practice' ? null : wallNormalMap,
+          normalScale: new THREE.Vector2(0.22, 0.22),
+          roughnessMap: scenePreset === 'practice' ? null : wallRoughnessMap,
+          metalnessMap: scenePreset === 'practice' ? null : wallMetalnessMap,
+          roughness: scenePreset === 'practice' ? 0.95 : 0.62,
+          metalness: scenePreset === 'practice' ? 0.02 : 0.18,
+          emissive: new THREE.Color(scenePreset === 'practice' ? '#000000' : '#2e1a66'),
+          emissiveIntensity: scenePreset === 'practice' ? 0 : 0.14,
+          side: THREE.FrontSide,
+        }),
+      )
+      ceiling.rotation.x = Math.PI / 2
+      ceiling.position.set(0, ROOM_HEIGHT, 0)
+      wallGroup.add(ceiling)
+
+      // 东侧墙（x=8）开门洞：中心 z=-5，宽3，高7
+      const eastTop = new THREE.Mesh(
+        new THREE.BoxGeometry(wallThickness, ROOM_HEIGHT - 7, 3),
+        roomMaterial,
+      )
+      eastTop.position.set(ROOM_SIZE / 2, 7 + (ROOM_HEIGHT - 7) / 2, -5)
+      wallGroup.add(eastTop)
+
+      const eastLeft = new THREE.Mesh(
+        new THREE.BoxGeometry(wallThickness, ROOM_HEIGHT, 1.5),
+        roomMaterial,
+      )
+      eastLeft.position.set(ROOM_SIZE / 2, ROOM_HEIGHT / 2, -7.25)
+      wallGroup.add(eastLeft)
+
+      const eastRight = new THREE.Mesh(
+        new THREE.BoxGeometry(wallThickness, ROOM_HEIGHT, 11.5),
+        roomMaterial,
+      )
+      eastRight.position.set(ROOM_SIZE / 2, ROOM_HEIGHT / 2, 2.25)
+      wallGroup.add(eastRight)
+
+      scene.add(wallGroup)
+    }
+
+    // Step2 三空间：主房间为卧室；厨房由(8,0,-5)门洞外扩6x5；厕所由(-5,0,8)门洞外扩6x6
+    if (scenePreset === 'default') {
+      const partitionMaterial = new THREE.MeshStandardMaterial({
+        color: 0xe6e3dc,
+        roughness: 0.9,
+        metalness: 0.02,
+      })
+
+      const extFloorMaterial = new THREE.MeshStandardMaterial({
+        color: 0xf4f4f4,
+        roughness: 0.95,
+        metalness: 0.02,
+      })
+
+      // 厨房地面：8x10，整体沿 z 轴正方向平移 2（中心 z=-3）
+      const kitchenFloor = new THREE.Mesh(new THREE.PlaneGeometry(8, 10), extFloorMaterial)
+      kitchenFloor.rotation.x = -Math.PI / 2
+      kitchenFloor.position.set(12, 0.02, -3)
+      kitchenFloor.receiveShadow = true
+      scene.add(kitchenFloor)
+
+      // 厨房天花板
+      const kitchenCeiling = new THREE.Mesh(
+        new THREE.PlaneGeometry(8, 10),
+        new THREE.MeshStandardMaterial({
+          color: 0xffffff,
+          map: scenePreset === 'practice' ? null : wallpaperMap,
+          normalMap: scenePreset === 'practice' ? null : wallNormalMap,
+          normalScale: new THREE.Vector2(0.22, 0.22),
+          roughnessMap: scenePreset === 'practice' ? null : wallRoughnessMap,
+          metalnessMap: scenePreset === 'practice' ? null : wallMetalnessMap,
+          roughness: scenePreset === 'practice' ? 0.95 : 0.62,
+          metalness: scenePreset === 'practice' ? 0.02 : 0.18,
+          emissive: new THREE.Color(scenePreset === 'practice' ? '#000000' : '#2e1a66'),
+          emissiveIntensity: scenePreset === 'practice' ? 0 : 0.14,
+          side: THREE.FrontSide,
+        }),
+      )
+      kitchenCeiling.rotation.x = Math.PI / 2
+      kitchenCeiling.position.set(12, ROOM_HEIGHT, -3)
+      scene.add(kitchenCeiling)
+
+      // 厕所地面：8x10，门洞中心调整为 x=-4
+      const toiletFloor = new THREE.Mesh(new THREE.PlaneGeometry(8, 10), extFloorMaterial)
+      toiletFloor.rotation.x = -Math.PI / 2
+      toiletFloor.position.set(-4, 0.02, 13)
+      toiletFloor.receiveShadow = true
+      scene.add(toiletFloor)
+
+      // 厕所天花板
+      const toiletCeiling = new THREE.Mesh(
+        new THREE.PlaneGeometry(8, 10),
+        new THREE.MeshStandardMaterial({
+          color: 0xffffff,
+          map: scenePreset === 'practice' ? null : wallpaperMap,
+          normalMap: scenePreset === 'practice' ? null : wallNormalMap,
+          normalScale: new THREE.Vector2(0.22, 0.22),
+          roughnessMap: scenePreset === 'practice' ? null : wallRoughnessMap,
+          metalnessMap: scenePreset === 'practice' ? null : wallMetalnessMap,
+          roughness: scenePreset === 'practice' ? 0.95 : 0.62,
+          metalness: scenePreset === 'practice' ? 0.02 : 0.18,
+          emissive: new THREE.Color(scenePreset === 'practice' ? '#000000' : '#2e1a66'),
+          emissiveIntensity: scenePreset === 'practice' ? 0 : 0.14,
+          side: THREE.FrontSide,
+        }),
+      )
+      toiletCeiling.rotation.x = Math.PI / 2
+      toiletCeiling.position.set(-4, ROOM_HEIGHT, 13)
+      scene.add(toiletCeiling)
+
+      const wallThickness = 0.12
+
+      // 厨房外侧封闭墙（x=16）
+      const kitchenOuterWall = new THREE.Mesh(
+        new THREE.BoxGeometry(wallThickness, ROOM_HEIGHT, 10),
+        partitionMaterial,
+      )
+      kitchenOuterWall.position.set(16, ROOM_HEIGHT / 2, -3)
+      scene.add(kitchenOuterWall)
+
+      // 厨房上下侧墙（z=-8 和 z=2）
+      const kitchenTopWall = new THREE.Mesh(
+        new THREE.BoxGeometry(8, ROOM_HEIGHT, wallThickness),
+        partitionMaterial,
+      )
+      kitchenTopWall.position.set(12, ROOM_HEIGHT / 2, -8)
+      scene.add(kitchenTopWall)
+
+      const kitchenBottomWall = new THREE.Mesh(
+        new THREE.BoxGeometry(8, ROOM_HEIGHT, wallThickness),
+        partitionMaterial,
+      )
+      kitchenBottomWall.position.set(12, ROOM_HEIGHT / 2, 2)
+      scene.add(kitchenBottomWall)
+
+      const kitchenDoorFrameMaterial = new THREE.MeshStandardMaterial({
+        color: 0xd3c9b6,
+        roughness: 0.7,
+        metalness: 0.05,
+      })
+
+      const kitchenDoorLintel = new THREE.Mesh(
+        new THREE.BoxGeometry(0.16, 0.14, 3.15),
+        kitchenDoorFrameMaterial,
+      )
+      kitchenDoorLintel.position.set(8.03, 7.02, -5)
+      scene.add(kitchenDoorLintel)
+
+      const kitchenDoorLeftPost = new THREE.Mesh(
+        new THREE.BoxGeometry(0.16, 7, 0.1),
+        kitchenDoorFrameMaterial,
+      )
+      kitchenDoorLeftPost.position.set(8.03, 3.5, -6.5)
+      scene.add(kitchenDoorLeftPost)
+
+      const kitchenDoorRightPost = new THREE.Mesh(
+        new THREE.BoxGeometry(0.16, 7, 0.1),
+        kitchenDoorFrameMaterial,
+      )
+      kitchenDoorRightPost.position.set(8.03, 3.5, -3.5)
+      scene.add(kitchenDoorRightPost)
+
+      // 卧室 -> 厕所门框（南侧墙 z=8，门洞中心 x=-4，宽3，高7）
+      const toiletDoorLintel = new THREE.Mesh(
+        new THREE.BoxGeometry(3.15, 0.14, 0.16),
+        kitchenDoorFrameMaterial,
+      )
+      toiletDoorLintel.position.set(-4, 7.02, 8.03)
+      scene.add(toiletDoorLintel)
+
+      const toiletDoorLeftPost = new THREE.Mesh(
+        new THREE.BoxGeometry(0.1, 7, 0.16),
+        kitchenDoorFrameMaterial,
+      )
+      toiletDoorLeftPost.position.set(-5.5, 3.5, 8.03)
+      scene.add(toiletDoorLeftPost)
+
+      const toiletDoorRightPost = new THREE.Mesh(
+        new THREE.BoxGeometry(0.1, 7, 0.16),
+        kitchenDoorFrameMaterial,
+      )
+      toiletDoorRightPost.position.set(-2.5, 3.5, 8.03)
+      scene.add(toiletDoorRightPost)
+
+      // 厕所外侧封闭墙（z=18）
+      const toiletOuterWall = new THREE.Mesh(
+        new THREE.BoxGeometry(8, ROOM_HEIGHT, wallThickness),
+        partitionMaterial,
+      )
+      toiletOuterWall.position.set(-4, ROOM_HEIGHT / 2, 18)
+      scene.add(toiletOuterWall)
+
+      // 厕所左右侧墙（x=-8 和 x=0）
+      const toiletLeftWall = new THREE.Mesh(
+        new THREE.BoxGeometry(wallThickness, ROOM_HEIGHT, 10),
+        partitionMaterial,
+      )
+      toiletLeftWall.position.set(-8, ROOM_HEIGHT / 2, 13)
+      scene.add(toiletLeftWall)
+
+      const toiletRightWall = new THREE.Mesh(
+        new THREE.BoxGeometry(wallThickness, ROOM_HEIGHT, 10),
+        partitionMaterial,
+      )
+      toiletRightWall.position.set(0, ROOM_HEIGHT / 2, 13)
+      scene.add(toiletRightWall)
+    }
 
     const floorMaterial = new THREE.MeshStandardMaterial({
       color: scenePreset === 'practice' ? 0x000000 : 0xffffff,
@@ -842,6 +1099,40 @@ export default function ThreeScene({
     let raf = 0
     const clock = new THREE.Clock()
     let lastActiveIdsKey = ''
+    let lastValidCameraX = camera.position.x
+    let lastValidCameraZ = camera.position.z
+
+    const isMovementBlocked = (prevX: number, prevZ: number, nextX: number, nextZ: number) => {
+      const PLAYER_RADIUS = 0.22
+      const inBedroom =
+        nextX >= -8 + PLAYER_RADIUS &&
+        nextX <= 8 - PLAYER_RADIUS &&
+        nextZ >= -8 + PLAYER_RADIUS &&
+        nextZ <= 8 - PLAYER_RADIUS
+      const inKitchen =
+        nextX >= 8 + PLAYER_RADIUS &&
+        nextX <= 16 - PLAYER_RADIUS &&
+        nextZ >= -8 + PLAYER_RADIUS &&
+        nextZ <= 2 - PLAYER_RADIUS
+      const inToilet =
+        nextX >= -8 + PLAYER_RADIUS &&
+        nextX <= 0 - PLAYER_RADIUS &&
+        nextZ >= 8 + PLAYER_RADIUS &&
+        nextZ <= 18 - PLAYER_RADIUS
+
+      const isCrossingKitchenWall =
+        (prevX <= 8 && nextX > 8) || (prevX >= 8 && nextX < 8)
+      const canPassKitchenDoor = nextZ >= -6.5 && nextZ <= -3.5
+
+      const isCrossingToiletWall =
+        (prevZ <= 8 && nextZ > 8) || (prevZ >= 8 && nextZ < 8)
+      const canPassToiletDoor = nextX >= -5.5 && nextX <= -2.5
+
+      if (!(inBedroom || inKitchen || inToilet)) return true
+      if (isCrossingKitchenWall && !canPassKitchenDoor) return true
+      if (isCrossingToiletWall && !canPassToiletDoor) return true
+      return false
+    }
 
     const animate = () => {
       raf = requestAnimationFrame(animate)
@@ -862,13 +1153,22 @@ export default function ThreeScene({
 
       if (movement.lengthSq() > 0) {
         movement.normalize().multiplyScalar(moveSpeed * delta)
-        camera.position.add(movement)
-        controls.target.add(movement)
 
-        camera.position.x = THREE.MathUtils.clamp(camera.position.x, -7.2, 7.2)
-        camera.position.z = THREE.MathUtils.clamp(camera.position.z, -7.2, 7.2)
-        controls.target.x = THREE.MathUtils.clamp(controls.target.x, -7.2, 7.2)
-        controls.target.z = THREE.MathUtils.clamp(controls.target.z, -7.2, 7.2)
+        const prevCameraX = camera.position.x
+        const prevCameraZ = camera.position.z
+        const nextX = THREE.MathUtils.clamp(prevCameraX + movement.x, -8.2, 16)
+        const nextZ = THREE.MathUtils.clamp(prevCameraZ + movement.z, -8.2, 18)
+
+        if (!isMovementBlocked(prevCameraX, prevCameraZ, nextX, nextZ)) {
+          const appliedX = nextX - prevCameraX
+          const appliedZ = nextZ - prevCameraZ
+          camera.position.set(nextX, camera.position.y, nextZ)
+          controls.target.x += appliedX
+          controls.target.z += appliedZ
+
+          controls.target.x = THREE.MathUtils.clamp(controls.target.x, -8.2, 16)
+          controls.target.z = THREE.MathUtils.clamp(controls.target.z, -8.2, 18)
+        }
       }
 
       const elapsed = clock.elapsedTime
@@ -950,6 +1250,19 @@ export default function ThreeScene({
       }
 
       controls.update()
+
+      const afterControlX = THREE.MathUtils.clamp(camera.position.x, -8.2, 16)
+      const afterControlZ = THREE.MathUtils.clamp(camera.position.z, -8.2, 18)
+      if (isMovementBlocked(lastValidCameraX, lastValidCameraZ, afterControlX, afterControlZ)) {
+        camera.position.x = lastValidCameraX
+        camera.position.z = lastValidCameraZ
+      } else {
+        camera.position.x = afterControlX
+        camera.position.z = afterControlZ
+        lastValidCameraX = afterControlX
+        lastValidCameraZ = afterControlZ
+      }
+
       renderer.render(scene, camera)
     }
 

@@ -846,7 +846,13 @@ function App() {
               <span>本阶段已进行：{Math.floor(formalDurationMs / 1000)}s</span>
               <span>自由移动并点击发光物品作答</span>
             </div>
-            <ThreeScene items={formalSceneItems} onItemClick={handleFormalItemClick} interactionLocked={Boolean(formalPanelItem)} />
+            <ThreeScene
+              items={formalSceneItems}
+              onItemClick={handleFormalItemClick}
+              interactionLocked={Boolean(formalPanelItem)}
+              initialCameraPosition={[7, 5, -7]}
+              initialTarget={[7, 5, -2]}
+            />
           </div>
 
           {formalCompleted && !showFormalExitButton && !formalPanelItem && (
