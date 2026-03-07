@@ -183,25 +183,86 @@
 
 - **可交互物件层**
   - 共 20 个可交互物件（卧室 10、厨房 5、厕所 5）
-  卧室：
-  互动物体编号 ｜ 2030年	｜ 1930年
-01｜ itr_01_2030_spray_bedroom	｜ itr_01_1930_spray_bedroom
-02｜ itr_02_2030_soundbox_bedroom  ｜ itr_02_1930_phonograph_bedroom
-03｜ itr_03_2030_holographicProjectorA_bedroom；itr_03_2030_holographicProjectorB_bedroom｜ itr_03_1930_radio_bedroom （此处的交互为itr_03_2030_holographicProjectorA_bedroom； itr_03_2030_holographicProjectorB_bedroom这两个模型合并为一个物体，和这个物体互动后会变成
-itr_03_1930_radio_bedroom这个唯一模型）
-04｜ itr_04_2030_smartLight_bedroom ｜ itr_04_1930_0_keroseneLamp_bedroom
-05｜ itr_05_2030_laptop_bedroom ｜ itr_05_1930_0_typewriter_bedroom
-06｜ itr_06_2030_smartPhone_bedroom ｜ itr_06_1930_envelope_bedroom
-07｜ itr_07_2030_digitalWallet_bedroom ｜ itr_07_1930_purse_bedroom
-08｜ itr_08_2030_coffeeMachine_bedroom ｜ itr_08_1930_handmadeCoffeeTools_bedroom
-09｜ itr_09_2030_airConditioner_bedroom ｜ itr_09_1930_heating_bedroom
-10｜ itr_10_2030_electricLighter_bedroom ｜ itr_10_1930_matchstick_bedroom
+卧室（10个可交互物体）
 
+| 编号 | 2030 模型 | 1930 模型 | 备注 |
+|---|---|---|---|
+| 01 | `itr_01_2030_spray_bedroom` | `itr_01_1930_spray_bedroom` | 一对一替换 |
+| 02 | `itr_02_2030_soundbox_bedroom` | `itr_02_1930_phonograph_bedroom` | 一对一替换 |
+| 03 | `itr_03_2030_holographicProjectorA_bedroom` + `itr_03_2030_holographicProjectorB_bedroom` | `itr_03_1930_radio_bedroom` | A/B 两个 2030 模型视为同一交互物体，完成后统一替换为 1 个 1930 模型 |
+| 04 | `itr_04_2030_smartLight_bedroom` | `itr_04_1930_0_keroseneLamp_bedroom` | 一对一替换 |
+| 05 | `itr_05_2030_laptop_bedroom` | `itr_05_1930_0_typewriter_bedroom` | 一对一替换 |
+| 06 | `itr_06_2030_smartPhone_bedroom` | `itr_06_1930_envelope_bedroom` | 一对一替换 |
+| 07 | `itr_07_2030_digitalWallet_bedroom` | `itr_07_1930_purse_bedroom` | 一对一替换 |
+| 08 | `itr_08_2030_coffeeMachine_bedroom` | `itr_08_1930_handmadeCoffeeTools_bedroom` | 一对一替换 |
+| 09 | `itr_09_2030_airConditioner_bedroom` | `itr_09_1930_heating_bedroom` | 一对一替换 |
+| 10 | `itr_10_2030_electricLighter_bedroom` | `itr_10_1930_matchstick_bedroom` | 一对一替换 |
   - 用户接近后高亮发光并进入可点击态；远离后恢复不可点击态
   - 已完成物件替换为 1930 版本并锁定不可再次点击
+每个物体编号对应的需要答的题目：
+1. 纳米修复喷雾
+A： 现代圆柱形运动水壶
+B： 老式马口铁气雾罐
+C： 游乐场旋转木马
+D： 带有发光液体的魔法药水瓶
+
+2. 智能音箱
+A： 现代头戴式无线耳机
+B： 木质复古相框
+C： 表面光滑的深灰色圆石
+D： 大喇叭铜质留声机
+
+3. 全息投影仪
+A： 收音机
+B： 铁制家用剪刀
+C： 现代极简透明玻璃立方体/花瓶
+D： 宽屏超薄液晶显示器
+
+4. 智能环境灯
+A： 强光手电筒
+B： 手提式煤油马灯
+C： 发光的磨砂白色乒乓球
+D： 玻璃水杯
+
+5. 笔记本电脑
+A： 传统的木框算盘
+B： 雷明顿机械打字机
+C： 银色不锈钢咖啡托盘
+D： 折叠式便携梳妆镜
+
+6. 智能手机
+A： 牛皮纸信封
+B： 火柴盒
+C： 陶瓷烟灰缸
+D： 黑色磨砂石板
+
+7. 数字钱包
+A： 黑色扁平充电宝
+B： 磨损的皮革钱袋与银币
+C： 手持雨伞的手柄
+D： 纸质银行存折
+
+8. 智能咖啡机
+A： 金属垃圾桶
+B： 旧报纸
+C： 手摇研磨机、炭火铜炉
+D： 咖啡包装袋
+
+9. 智能中央空调
+A： 墙上的白色横梁
+B： 绿色盆栽
+C： 三叶电风扇
+D： 铸铁暖气片
+
+10. 电浆打火机
+A： 塑料美发梳
+B： 聚光放大镜
+C： 木制火柴盒
+D： 圆柱金属外壳口红
+
 
 - **答题浮窗层**
-  - 点击可交互物件后弹出题卡（4 选 1）
+  - 点击可交互物件后弹出题卡
   - 包含：题干、4 个选项、`确认选择` 按钮
   - 未选择选项前按钮禁用；提交后关闭题卡并触发物件替换动画
 

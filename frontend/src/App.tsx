@@ -77,121 +77,121 @@ const FORMAL_ITEMS: ItemQuestion[] = [
   {
     id: 'nano-repair-spray',
     name: '纳米修复喷雾',
-    question: '纳米修复喷雾（itr_01_2030_spray_bedroom.glb）最可能退行成哪一项？',
+    question: '纳米修复喷雾最可能退行成哪一项？',
     correctOptionId: 'B',
     options: [
-      { id: 'A', label: 'A. 现代圆柱形运动水壶（visual）' },
-      { id: 'B', label: 'B. 老式马口铁气雾罐（spray）（narrative）' },
-      { id: 'C', label: 'C. 游乐场旋转木马（baseline 无关项）' },
-      { id: 'D', label: 'D. 带有发光液体的魔法药水瓶（semantic）' },
+      { id: 'A', label: 'A. 现代圆柱形运动水壶' },
+      { id: 'B', label: 'B. 老式马口铁气雾罐' },
+      { id: 'C', label: 'C. 游乐场旋转木马' },
+      { id: 'D', label: 'D. 带有发光液体的魔法药水瓶' },
     ],
   },
   {
     id: 'smart-speaker',
     name: '智能音箱',
-    question: '智能音箱（itr_02_2030_soundbox_bedroom.glb）最可能退行成哪一项？',
+    question: '智能音箱最可能退行成哪一项？',
     correctOptionId: 'D',
     options: [
-      { id: 'A', label: 'A. 现代头戴式无线耳机（semantic）' },
-      { id: 'B', label: 'B. 木质复古相框（baseline 无关项）' },
-      { id: 'C', label: 'C. 表面光滑的深灰色圆石（visual）' },
-      { id: 'D', label: 'D. 大喇叭铜质留声机（narrative）' },
+      { id: 'A', label: 'A. 现代头戴式无线耳机' },
+      { id: 'B', label: 'B. 木质复古相框' },
+      { id: 'C', label: 'C. 表面光滑的深灰色圆石' },
+      { id: 'D', label: 'D. 大喇叭铜质留声机' },
     ],
   },
   {
     id: 'holographic-projector',
     name: '全息投影仪',
-    question: '全息投影仪（itr_03_2030_holographicProjectorA_bedroom.glb）最可能退行成哪一项？',
+    question: '全息投影仪最可能退行成哪一项？',
     correctOptionId: 'A',
     options: [
-      { id: 'A', label: 'A. 古董幻灯机（narrative）' },
-      { id: 'B', label: 'B. 铁制家用剪刀（baseline 无关项）' },
-      { id: 'C', label: 'C. 现代极简透明玻璃立方体/花瓶（visual）' },
-      { id: 'D', label: 'D. 宽屏超薄液晶显示器（semantic）' },
+      { id: 'A', label: 'A. 古董幻灯机' },
+      { id: 'B', label: 'B. 铁制家用剪刀' },
+      { id: 'C', label: 'C. 现代极简透明玻璃立方体/花瓶' },
+      { id: 'D', label: 'D. 宽屏超薄液晶显示器' },
     ],
   },
   {
     id: 'smart-environment-lamp',
     name: '智能环境灯',
-    question: '智能环境灯（itr_04_2030_smartLight_bedroom.glb）最可能退行成哪一项？',
+    question: '智能环境灯最可能退行成哪一项？',
     correctOptionId: 'B',
     options: [
-      { id: 'A', label: 'A. 强光手电筒（semantic）' },
-      { id: 'B', label: 'B. 手提式煤油马灯（narrative）' },
-      { id: 'C', label: 'C. 发光的磨砂白色乒乓球（visual）' },
-      { id: 'D', label: 'D. 玻璃水杯（baseline 无关项）' },
+      { id: 'A', label: 'A. 强光手电筒' },
+      { id: 'B', label: 'B. 手提式煤油马灯' },
+      { id: 'C', label: 'C. 发光的磨砂白色乒乓球' },
+      { id: 'D', label: 'D. 玻璃水杯' },
     ],
   },
   {
     id: 'laptop',
     name: '笔记本电脑',
-    question: '笔记本电脑（itr_05_2030_laptop_bedroom.glb）最可能退行成哪一项？',
+    question: '笔记本电脑最可能退行成哪一项？',
     correctOptionId: 'B',
     options: [
-      { id: 'A', label: 'A. 传统的木框算盘（semantic）' },
-      { id: 'B', label: 'B. 雷明顿机械打字机（narrative）' },
-      { id: 'C', label: 'C. 银色不锈钢咖啡托盘（baseline 无关项）' },
-      { id: 'D', label: 'D. 折叠式便携梳妆镜（visual）' },
+      { id: 'A', label: 'A. 传统的木框算盘' },
+      { id: 'B', label: 'B. 雷明顿机械打字机' },
+      { id: 'C', label: 'C. 银色不锈钢咖啡托盘' },
+      { id: 'D', label: 'D. 折叠式便携梳妆镜' },
     ],
   },
   {
     id: 'smartphone',
     name: '智能手机',
-    question: '智能手机（itr_06_2030_smartPhone_bedroom.glb）最可能退行成哪一项？',
+    question: '智能手机最可能退行成哪一项？',
     correctOptionId: 'A',
     options: [
-      { id: 'A', label: 'A. 牛皮纸信封（narrative）' },
-      { id: 'B', label: 'B. 火柴盒（semantic）' },
-      { id: 'C', label: 'C. 陶瓷烟灰缸（baseline 无关项）' },
-      { id: 'D', label: 'D. 黑色磨砂石板（visual）' },
+      { id: 'A', label: 'A. 牛皮纸信封' },
+      { id: 'B', label: 'B. 火柴盒' },
+      { id: 'C', label: 'C. 陶瓷烟灰缸' },
+      { id: 'D', label: 'D. 黑色磨砂石板' },
     ],
   },
   {
     id: 'digital-wallet',
     name: '数字钱包',
-    question: '数字钱包（itr_07_2030_digitalWallet_bedroom.glb）最可能退行成哪一项？',
+    question: '数字钱包最可能退行成哪一项？',
     correctOptionId: 'B',
     options: [
-      { id: 'A', label: 'A. 黑色扁平充电宝（visual）' },
-      { id: 'B', label: 'B. 磨损的皮革钱袋与银币（narrative）' },
-      { id: 'C', label: 'C. 手持雨伞的手柄（baseline 无关项）' },
-      { id: 'D', label: 'D. 纸质银行存折（semantic）' },
+      { id: 'A', label: 'A. 黑色扁平充电宝' },
+      { id: 'B', label: 'B. 磨损的皮革钱袋与银币' },
+      { id: 'C', label: 'C. 手持雨伞的手柄' },
+      { id: 'D', label: 'D. 纸质银行存折' },
     ],
   },
   {
     id: 'smart-coffee-machine',
     name: '智能咖啡机',
-    question: '智能咖啡机（itr_08_2030_coffeeMachine_bedroom.glb）最可能退行成哪一项？',
+    question: '智能咖啡机最可能退行成哪一项？',
     correctOptionId: 'C',
     options: [
-      { id: 'A', label: 'A. 金属垃圾桶（visual）' },
-      { id: 'B', label: 'B. 旧报纸（baseline 无关项）' },
-      { id: 'C', label: 'C. 手摇研磨机、炭火铜炉（narrative）' },
-      { id: 'D', label: 'D. 咖啡包装袋（semantic）' },
+      { id: 'A', label: 'A. 金属垃圾桶' },
+      { id: 'B', label: 'B. 旧报纸' },
+      { id: 'C', label: 'C. 手摇研磨机、炭火铜炉' },
+      { id: 'D', label: 'D. 咖啡包装袋' },
     ],
   },
   {
     id: 'smart-air-conditioner',
     name: '智能中央空调',
-    question: '智能中央空调（itr_09_2030_airConditioner_bedroom.glb）最可能退行成哪一项？',
+    question: '智能中央空调最可能退行成哪一项？',
     correctOptionId: 'D',
     options: [
-      { id: 'A', label: 'A. 墙上的白色横梁（visual）' },
-      { id: 'B', label: 'B. 绿色盆栽（baseline 无关项）' },
-      { id: 'C', label: 'C. 三叶电风扇（semantic）' },
-      { id: 'D', label: 'D. 铸铁暖气片（narrative）' },
+      { id: 'A', label: 'A. 墙上的白色横梁' },
+      { id: 'B', label: 'B. 绿色盆栽' },
+      { id: 'C', label: 'C. 三叶电风扇' },
+      { id: 'D', label: 'D. 铸铁暖气片' },
     ],
   },
   {
     id: 'plasma-lighter',
     name: '电浆打火机',
-    question: '电浆打火机（itr_10_2030_electricLighter_bedroom.glb）最可能退行成哪一项？',
+    question: '电浆打火机最可能退行成哪一项？',
     correctOptionId: 'C',
     options: [
-      { id: 'A', label: 'A. 塑料美发梳（baseline 无关项）' },
-      { id: 'B', label: 'B. 聚光放大镜（semantic）' },
-      { id: 'C', label: 'C. 木制火柴盒（narrative）' },
-      { id: 'D', label: 'D. 圆柱金属外壳口红（visual）' },
+      { id: 'A', label: 'A. 塑料美发梳' },
+      { id: 'B', label: 'B. 聚光放大镜' },
+      { id: 'C', label: 'C. 木制火柴盒' },
+      { id: 'D', label: 'D. 圆柱金属外壳口红' },
     ],
   },
 ]
@@ -625,10 +625,12 @@ function App() {
   const formalSceneItems = useMemo(
     () => {
       const slotOverrides: Record<string, number> = {
+        // 严格对齐 PRD 186-201（卧室10个可交互物体）
         'nano-repair-spray': 9,
         'smart-speaker': 7,
-        'holographic-projector': 15,
-        'smart-environment-lamp': 14,
+        // 03：A/B 视为同一交互物体，这里用 A 的槽位作为交互点
+        'holographic-projector': 16,
+        'smart-environment-lamp': 17,
         laptop: 6,
         smartphone: 5,
         'digital-wallet': 3,
@@ -637,12 +639,22 @@ function App() {
         'plasma-lighter': 14,
       }
 
-      return FORMAL_ITEMS.map((item) => ({
+      const mainItems = FORMAL_ITEMS.map((item) => ({
         id: item.id,
         name: item.name,
         answered: formalAnsweredIds.has(item.id),
         slotOverride: slotOverrides[item.id],
       }))
+
+      // 03 题特殊规则：A/B 两个 2030 投影模型共用同一题，完成后二者同时退场，仅保留一个 1930 radio
+      mainItems.push({
+        id: 'holographic-projector-buddy',
+        name: '全息投影仪（B）',
+        answered: formalAnsweredIds.has('holographic-projector'),
+        slotOverride: 15,
+      })
+
+      return mainItems
     },
     [formalAnsweredIds],
   )
@@ -652,7 +664,8 @@ function App() {
   }, [])
 
   const handleFormalItemClick = useCallback((itemId: string) => {
-    const item = FORMAL_ITEMS.find((it) => it.id === itemId)
+    const normalizedItemId = itemId === 'holographic-projector-buddy' ? 'holographic-projector' : itemId
+    const item = FORMAL_ITEMS.find((it) => it.id === normalizedItemId)
     if (!item) return
     openFormalPanel(item)
   }, [formalAnsweredIds])

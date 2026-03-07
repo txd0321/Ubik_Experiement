@@ -144,6 +144,12 @@ const ITEM_CONFIGS: ItemPlacementConfig[] = [
     targetSize: 1.4,
     rotationY: Math.PI / 2,
   },
+  {
+    modelPath: '/assets/models/itr_04_2030_smartLight_bedroom.glb',
+    position: [5.8, 1.2, -6.2],
+    targetSize: 1.1,
+    rotationY: 0,
+  },
 ]
 
 type ItemVisual = {
@@ -190,15 +196,18 @@ const NO_GREEN_MODEL_PATHS = new Set([
 ])
 
 const HISTORIC_MODEL_BY_SLOT: Partial<Record<number, string>> = {
+  // 严格对齐 PRD 卧室 10 个可交互物体
   0: '/assets/models/itr_09_1930_heating_bedroom.glb',
   1: '/assets/models/itr_08_1930_handmadeCoffeeTools_bedroom.glb',
   3: '/assets/models/itr_07_1930_purse_bedroom.glb',
   5: '/assets/models/itr_06_1930_envelope_bedroom.glb',
-  6: '/assets/models/itr_05_1930_0_typewriter_bedroom.glb',
-  7: '/assets/models/itr_03_1930_radio_bedroom.glb',
+  6: '/assets/models/itr_05_1930_typewriter_bedroom.glb',
+  7: '/assets/models/itr_02_1930_phonograph_bedroom.glb',
   9: '/assets/models/itr_01_1930_spray_bedroom.glb',
   14: '/assets/models/itr_10_1930_matchstick_bedroom.glb',
-  15: '/assets/models/itr_04_1930_0_keroseneLamp_bedroom.glb',
+  // 03：A/B 合并交互后统一替换为 radio
+  16: '/assets/models/itr_03_1930_radio_bedroom.glb',
+  17: '/assets/models/itr_04_1930_keroseneLamp_bedroom.glb',
 }
 
 function fitModelToTarget(model: THREE.Object3D, targetSize = 1.1) {
@@ -250,16 +259,11 @@ function collectEmissiveMaterials(root: THREE.Object3D) {
 }
 
 function updateVisualAppearance(visual: ItemVisual) {
-  const { answered, active, placeholder, emissiveMaterials, glowHalo, suppressAnsweredGreen } = visual
-  const shouldShowAnsweredGreen = answered && !suppressAnsweredGreen
+  const { answered, active, placeholder, emissiveMaterials, glowHalo } = visual
 
   if (placeholder) {
     const mat = placeholder.material as THREE.MeshStandardMaterial
-    if (shouldShowAnsweredGreen) {
-      mat.color.set('#2be694')
-      mat.emissive.set('#1a8f62')
-      mat.emissiveIntensity = 0.6
-    } else if (active) {
+    if (active && !answered) {
       mat.color.set('#fff4c4')
       mat.emissive.set('#ffd84d')
       mat.emissiveIntensity = 0.85
@@ -271,10 +275,7 @@ function updateVisualAppearance(visual: ItemVisual) {
   }
 
   emissiveMaterials.forEach((mat) => {
-    if (shouldShowAnsweredGreen) {
-      mat.emissive.set('#1a8f62')
-      mat.emissiveIntensity = 0.5
-    } else if (active) {
+    if (active && !answered) {
       mat.emissive.set('#ffd84d')
       mat.emissiveIntensity = 1.2
     } else {
@@ -359,13 +360,14 @@ export default function ThreeScene({
     mount.appendChild(renderer.domElement)
 
     const controls = new OrbitControls(camera, renderer.domElement)
-    controls.enableDamping = true
+    controls.enableDamping = false
     controls.enablePan = false
-    controls.enableZoom = true
-    controls.minDistance = 4.8
-    controls.maxDistance = 5.2
+    controls.enableRotate = false
+    controls.enableZoom = false
+    controls.enabled = false
     const targetPos = initialTarget ?? [0, CAMERA_EYE_HEIGHT, 0]
     controls.target.set(targetPos[0], targetPos[1], targetPos[2])
+    camera.lookAt(new THREE.Vector3(targetPos[0], targetPos[1], targetPos[2]))
     controls.update()
 
     const pmremGenerator = new THREE.PMREMGenerator(renderer)
@@ -965,7 +967,7 @@ export default function ThreeScene({
       root.add(placeholder)
 
       const glowHalo = new THREE.Mesh(
-        new THREE.SphereGeometry(1.25, 28, 28),
+        new THREE.SphereGeometry(0.9, 28, 28),
         new THREE.MeshBasicMaterial({
           color: '#ffd84d',
           transparent: true,
@@ -1023,6 +1025,9 @@ export default function ThreeScene({
 
     const moveState = { KeyW: false, KeyA: false, KeyS: false, KeyD: false }
     const moveSpeed = 4
+    const lookState = { active: false, lastX: 0, lastY: 0 }
+    const yawPitch = new THREE.Euler(0, 0, 0, 'YXZ')
+    const rotateSensitivity = 0.0025
 
     const keyDown = (event: KeyboardEvent) => {
       if (!(event.code in moveState)) return
@@ -1076,6 +1081,21 @@ export default function ThreeScene({
         renderer.domElement.style.cursor = 'default'
         return
       }
+
+      if (lookState.active) {
+        const deltaX = event.clientX - lookState.lastX
+        const deltaY = event.clientY - lookState.lastY
+        lookState.lastX = event.clientX
+        lookState.lastY = event.clientY
+
+        yawPitch.setFromQuaternion(camera.quaternion)
+        yawPitch.y -= deltaX * rotateSensitivity
+        yawPitch.x -= deltaY * rotateSensitivity
+        yawPitch.x = THREE.MathUtils.clamp(yawPitch.x, -Math.PI / 2.2, Math.PI / 2.2)
+        camera.quaternion.setFromEuler(yawPitch)
+        return
+      }
+
       const hoveredItemId = resolveHoveredItemId(event)
       if (!hoveredItemId) {
         renderer.domElement.style.cursor = 'default'
@@ -1087,8 +1107,23 @@ export default function ThreeScene({
       renderer.domElement.style.cursor = isClickable ? 'pointer' : 'default'
     }
 
+    const onMouseDown = (event: MouseEvent) => {
+      if (interactionLockedRef.current) return
+      if (event.button !== 0) return
+      lookState.active = true
+      lookState.lastX = event.clientX
+      lookState.lastY = event.clientY
+      renderer.domElement.style.cursor = 'grabbing'
+    }
+
+    const onMouseUp = () => {
+      lookState.active = false
+      renderer.domElement.style.cursor = 'default'
+    }
+
     const onClick = (event: MouseEvent) => {
       if (interactionLockedRef.current) return
+      if (lookState.active) return
       const targetItemId = resolveHoveredItemId(event)
       if (!targetItemId) return
       const visual = visualsById.get(targetItemId)
@@ -1161,14 +1196,9 @@ export default function ThreeScene({
         const nextZ = THREE.MathUtils.clamp(prevCameraZ + movement.z, -8.2, 18)
 
         if (!isMovementBlocked(prevCameraX, prevCameraZ, nextX, nextZ)) {
-          const appliedX = nextX - prevCameraX
-          const appliedZ = nextZ - prevCameraZ
           camera.position.set(nextX, camera.position.y, nextZ)
-          controls.target.x += appliedX
-          controls.target.z += appliedZ
-
-          controls.target.x = THREE.MathUtils.clamp(controls.target.x, -8.2, 16)
-          controls.target.z = THREE.MathUtils.clamp(controls.target.z, -8.2, 18)
+          lastValidCameraX = nextX
+          lastValidCameraZ = nextZ
         }
       }
 
@@ -1177,14 +1207,16 @@ export default function ThreeScene({
       visualsById.forEach((visual) => {
         visual.root.position.y = visual.baseY
 
-        const flatCameraPos = new THREE.Vector3(camera.position.x, visual.baseY, camera.position.z)
-        const distance = visual.root.position.distanceTo(flatCameraPos)
-        visual.active = !visual.answered && distance <= INTERACT_DISTANCE
+        // 仅按 (x, z) 平面上的直线距离判定可交互范围
+        const dx = camera.position.x - visual.root.position.x
+        const dz = camera.position.z - visual.root.position.z
+        const planarDistance = Math.hypot(dx, dz)
+        visual.active = !visual.answered && planarDistance <= INTERACT_DISTANCE
 
         const haloMat = visual.glowHalo.material as THREE.MeshBasicMaterial
         if (visual.active && !visual.answered) {
           const pulse = (Math.sin(elapsed * 4.2) + 1) / 2
-          const scale = 1.12 + pulse * 0.14
+          const scale = 0.88 + pulse * 0.1
           visual.glowHalo.scale.setScalar(scale)
           haloMat.opacity = 0.1 + pulse * 0.1
         }
@@ -1250,20 +1282,7 @@ export default function ThreeScene({
         onActiveItemsChangeRef.current?.(activeIds)
       }
 
-      controls.update()
-
-      const afterControlX = THREE.MathUtils.clamp(camera.position.x, -8.2, 16)
-      const afterControlZ = THREE.MathUtils.clamp(camera.position.z, -8.2, 18)
-      if (isMovementBlocked(lastValidCameraX, lastValidCameraZ, afterControlX, afterControlZ)) {
-        camera.position.x = lastValidCameraX
-        camera.position.z = lastValidCameraZ
-      } else {
-        camera.position.x = afterControlX
-        camera.position.z = afterControlZ
-        lastValidCameraX = afterControlX
-        lastValidCameraZ = afterControlZ
-      }
-
+      // OrbitControls 已禁用，仅保留手写视角/位移控制
       renderer.render(scene, camera)
     }
 
@@ -1282,6 +1301,8 @@ export default function ThreeScene({
     window.addEventListener('keydown', keyDown)
     window.addEventListener('keyup', keyUp)
     window.addEventListener('blur', blurReset)
+    renderer.domElement.addEventListener('mousedown', onMouseDown)
+    window.addEventListener('mouseup', onMouseUp)
     renderer.domElement.addEventListener('mousemove', onPointerMove)
     renderer.domElement.addEventListener('click', onClick)
 
@@ -1368,6 +1389,11 @@ export default function ThreeScene({
       visual.answered = item.answered
       if (visual.answered) {
         visual.active = false
+      }
+
+      // 03 题特殊规则：A/B 同题时，B 模型答题后直接退场，不再生成历史模型
+      if (item.id === 'holographic-projector-buddy') {
+        visual.root.visible = !item.answered
       }
     })
   }, [items])
