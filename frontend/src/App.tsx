@@ -23,18 +23,13 @@ type PracticeAnswer = {
   isCorrect: boolean
 }
 
-type FormalOptionHoverSummary = {
-  optionId: string
-  hoverCount: number
-  hoverDurationMsTotal: number
-}
-
 type FormalAnswer = {
   itemId: string
   selectedOptionId: string
   durationMs: number
   orderIndex: number
-  optionHoverSummary: FormalOptionHoverSummary[]
+  optionHoverDurationsMs: Record<string, number>
+  optionHoverCounts: Record<string, number>
 }
 
 type SurveyData = {
@@ -82,7 +77,7 @@ const FORMAL_ITEMS: ItemQuestion[] = [
   {
     id: 'nano-repair-spray',
     name: '纳米修复喷雾',
-    question: '纳米修复喷雾（2030_time_spray.glb）最可能退行成哪一项？',
+    question: '纳米修复喷雾（itr_01_2030_spray_bedroom.glb）最可能退行成哪一项？',
     correctOptionId: 'B',
     options: [
       { id: 'A', label: 'A. 现代圆柱形运动水壶（visual）' },
@@ -94,7 +89,7 @@ const FORMAL_ITEMS: ItemQuestion[] = [
   {
     id: 'smart-speaker',
     name: '智能音箱',
-    question: '智能音箱（2030_soundbox.glb）最可能退行成哪一项？',
+    question: '智能音箱（itr_02_2030_soundbox_bedroom.glb）最可能退行成哪一项？',
     correctOptionId: 'D',
     options: [
       { id: 'A', label: 'A. 现代头戴式无线耳机（semantic）' },
@@ -106,7 +101,7 @@ const FORMAL_ITEMS: ItemQuestion[] = [
   {
     id: 'holographic-projector',
     name: '全息投影仪',
-    question: '全息投影仪（2030_projector_02.glb）最可能退行成哪一项？',
+    question: '全息投影仪（itr_03_2030_holographicProjectorA_bedroom.glb）最可能退行成哪一项？',
     correctOptionId: 'A',
     options: [
       { id: 'A', label: 'A. 古董幻灯机（narrative）' },
@@ -118,7 +113,7 @@ const FORMAL_ITEMS: ItemQuestion[] = [
   {
     id: 'smart-environment-lamp',
     name: '智能环境灯',
-    question: '智能环境灯（2030_light.glb）最可能退行成哪一项？',
+    question: '智能环境灯（itr_04_2030_smartLight_bedroom.glb）最可能退行成哪一项？',
     correctOptionId: 'B',
     options: [
       { id: 'A', label: 'A. 强光手电筒（semantic）' },
@@ -130,7 +125,7 @@ const FORMAL_ITEMS: ItemQuestion[] = [
   {
     id: 'laptop',
     name: '笔记本电脑',
-    question: '笔记本电脑（2030_laptop.glb）最可能退行成哪一项？',
+    question: '笔记本电脑（itr_05_2030_laptop_bedroom.glb）最可能退行成哪一项？',
     correctOptionId: 'B',
     options: [
       { id: 'A', label: 'A. 传统的木框算盘（semantic）' },
@@ -142,7 +137,7 @@ const FORMAL_ITEMS: ItemQuestion[] = [
   {
     id: 'smartphone',
     name: '智能手机',
-    question: '智能手机（2030_handphone.glb）最可能退行成哪一项？',
+    question: '智能手机（itr_06_2030_smartPhone_bedroom.glb）最可能退行成哪一项？',
     correctOptionId: 'A',
     options: [
       { id: 'A', label: 'A. 牛皮纸信封（narrative）' },
@@ -154,7 +149,7 @@ const FORMAL_ITEMS: ItemQuestion[] = [
   {
     id: 'digital-wallet',
     name: '数字钱包',
-    question: '数字钱包（2030_digital_wallet.glb）最可能退行成哪一项？',
+    question: '数字钱包（itr_07_2030_digitalWallet_bedroom.glb）最可能退行成哪一项？',
     correctOptionId: 'B',
     options: [
       { id: 'A', label: 'A. 黑色扁平充电宝（visual）' },
@@ -166,7 +161,7 @@ const FORMAL_ITEMS: ItemQuestion[] = [
   {
     id: 'smart-coffee-machine',
     name: '智能咖啡机',
-    question: '智能咖啡机（2030_coffee_machine.glb）最可能退行成哪一项？',
+    question: '智能咖啡机（itr_08_2030_coffeeMachine_bedroom.glb）最可能退行成哪一项？',
     correctOptionId: 'C',
     options: [
       { id: 'A', label: 'A. 金属垃圾桶（visual）' },
@@ -178,7 +173,7 @@ const FORMAL_ITEMS: ItemQuestion[] = [
   {
     id: 'smart-air-conditioner',
     name: '智能中央空调',
-    question: '智能中央空调（2030_air_conditioner.glb）最可能退行成哪一项？',
+    question: '智能中央空调（itr_09_2030_airConditioner_bedroom.glb）最可能退行成哪一项？',
     correctOptionId: 'D',
     options: [
       { id: 'A', label: 'A. 墙上的白色横梁（visual）' },
@@ -190,7 +185,7 @@ const FORMAL_ITEMS: ItemQuestion[] = [
   {
     id: 'plasma-lighter',
     name: '电浆打火机',
-    question: '电浆打火机（2030_lighter.glb）最可能退行成哪一项？',
+    question: '电浆打火机（itr_10_2030_electricLighter_bedroom.glb）最可能退行成哪一项？',
     correctOptionId: 'C',
     options: [
       { id: 'A', label: 'A. 塑料美发梳（baseline 无关项）' },
@@ -234,7 +229,8 @@ function App() {
   const [formalPanelItem, setFormalPanelItem] = useState<ItemQuestion | null>(null)
   const [formalSelected, setFormalSelected] = useState('')
   const [formalAnswers, setFormalAnswers] = useState<FormalAnswer[]>([])
-  const [formalCanExit, setFormalCanExit] = useState(false)
+  const [formalCompleted, setFormalCompleted] = useState(false)
+  const [showFormalExitButton, setShowFormalExitButton] = useState(false)
 
   const [surveyData, setSurveyData] = useState<SurveyData>({
     taskDifficulty: '',
@@ -251,18 +247,18 @@ function App() {
 
   const [position, setPosition] = useState({ x: 0, z: 0 })
   const [nowMs, setNowMs] = useState(Date.now())
+  const [formalDurationMs, setFormalDurationMs] = useState(0)
 
   const eventsRef = useRef<EventPayload[]>([])
   const practiceFeedbackTimerRef = useRef<number | null>(null)
   const experimentStartAtRef = useRef<number>(0)
-  const formalStartAtRef = useRef<number>(0)
   const panelOpenAtRef = useRef<number>(0)
   const formalOrderRef = useRef<number>(0)
-  const formalPathTickTimerRef = useRef<number | null>(null)
-  const formalLatestCameraRef = useRef<{ position: { x: number; y: number; z: number }; rotation: { pitch: number; yaw: number; roll: number } } | null>(null)
-  const formalOptionHoverStatsRef = useRef<Record<string, { hoverCount: number; hoverDurationMsTotal: number }>>({})
-  const formalOptionHoverStartAtRef = useRef<Record<string, number>>({})
   const surveyQuestionOpenAtRef = useRef<Record<string, number>>({})
+  const formalStepStartedAtRef = useRef<number>(0)
+  const formalOptionHoverStartRef = useRef<Record<string, number>>({})
+  const formalOptionHoverDurationsRef = useRef<Record<string, number>>({})
+  const formalOptionHoverCountsRef = useRef<Record<string, number>>({})
 
   const formalAnsweredIds = useMemo(
     () => new Set(formalAnswers.map((a) => a.itemId)),
@@ -327,8 +323,9 @@ function App() {
       track('practice_scene_loaded')
     }
     if (step === 'formal') {
-      formalStartAtRef.current = Date.now()
-      setFormalCanExit(false)
+      formalStepStartedAtRef.current = Date.now()
+      setFormalCompleted(false)
+      setShowFormalExitButton(false)
       track('formal_scene_loaded')
     }
   }, [sessionId, step])
@@ -352,47 +349,22 @@ function App() {
 
   useEffect(() => {
     const timer = window.setInterval(() => {
-      setNowMs(Date.now())
+      const now = Date.now()
+      setNowMs(now)
+      if (step === 'formal' && formalStepStartedAtRef.current) {
+        setFormalDurationMs(now - formalStepStartedAtRef.current)
+      }
     }, 200)
     return () => clearInterval(timer)
-  }, [])
+  }, [step])
 
   useEffect(() => {
     return () => {
       if (practiceFeedbackTimerRef.current) {
         window.clearTimeout(practiceFeedbackTimerRef.current)
       }
-      if (formalPathTickTimerRef.current) {
-        window.clearInterval(formalPathTickTimerRef.current)
-      }
     }
   }, [])
-
-  useEffect(() => {
-    if (step !== 'formal' || !sessionId) return
-
-    if (formalPathTickTimerRef.current) {
-      window.clearInterval(formalPathTickTimerRef.current)
-      formalPathTickTimerRef.current = null
-    }
-
-    formalPathTickTimerRef.current = window.setInterval(() => {
-      const camera = formalLatestCameraRef.current
-      if (!camera) return
-      track('formal_path_tick', {
-        ts: Date.now(),
-        camera_position: camera.position,
-        camera_rotation: camera.rotation,
-      })
-    }, 1000)
-
-    return () => {
-      if (formalPathTickTimerRef.current) {
-        window.clearInterval(formalPathTickTimerRef.current)
-        formalPathTickTimerRef.current = null
-      }
-    }
-  }, [step, sessionId])
 
   useEffect(() => {
     if (step !== 'practice' && step !== 'formal') return
@@ -412,6 +384,17 @@ function App() {
     return () => window.removeEventListener('keydown', listener)
   }, [step, sessionId])
 
+  useEffect(() => {
+    if (step !== 'formal' || !sessionId) return
+    const timer = window.setInterval(() => {
+      track('formal_path_tick', {
+        ts: Date.now(),
+        camera_position: { x: position.x, y: 0, z: position.z },
+      })
+    }, 1000)
+    return () => window.clearInterval(timer)
+  }, [step, sessionId, position.x, position.z])
+
   const goToStep = (next: Step) => {
     setLoading(true)
     setTimeout(() => {
@@ -419,51 +402,6 @@ function App() {
       setLoading(false)
     }, 500)
   }
-
-  const handleFormalCameraStateChange = useCallback((state: {
-    position: { x: number; y: number; z: number }
-    rotation: { pitch: number; yaw: number; roll: number }
-  }) => {
-    formalLatestCameraRef.current = state
-    setPosition({
-      x: Number(state.position.x.toFixed(1)),
-      z: Number(state.position.z.toFixed(1)),
-    })
-  }, [])
-
-  const trackFormalOptionHoverStart = useCallback((itemId: string, optionId: string) => {
-    const key = `${itemId}::${optionId}`
-    if (formalOptionHoverStartAtRef.current[key]) return
-    formalOptionHoverStartAtRef.current[key] = Date.now()
-    track('formal_option_hover_start', { itemId, optionId })
-  }, [sessionId, step])
-
-  const trackFormalOptionHoverEnd = useCallback((itemId: string, optionId: string) => {
-    const key = `${itemId}::${optionId}`
-    const startAt = formalOptionHoverStartAtRef.current[key]
-    if (!startAt) return
-    const duration = Date.now() - startAt
-    delete formalOptionHoverStartAtRef.current[key]
-
-    const prev = formalOptionHoverStatsRef.current[key] ?? { hoverCount: 0, hoverDurationMsTotal: 0 }
-    formalOptionHoverStatsRef.current[key] = {
-      hoverCount: prev.hoverCount + 1,
-      hoverDurationMsTotal: prev.hoverDurationMsTotal + duration,
-    }
-
-    track('formal_option_hover_end', { itemId, optionId, hoverDurationMs: duration })
-  }, [sessionId, step])
-
-  const exitFormalToSurvey = useCallback(() => {
-    if (!formalCanExit) return
-    const endedAt = Date.now()
-    track('formal_exit_experiment_click', {
-      formal_started_at: formalStartAtRef.current,
-      formal_ended_at: endedAt,
-      formal_duration_ms: Math.max(0, endedAt - formalStartAtRef.current),
-    })
-    goToStep('survey')
-  }, [formalCanExit, sessionId, step])
 
   const openPracticePanel = useCallback(() => {
     setPracticePanelOpen(true)
@@ -527,60 +465,59 @@ function App() {
       if (formalAnsweredIds.has(item.id)) return
       setFormalPanelItem(item)
       setFormalSelected('')
+      formalOptionHoverStartRef.current = {}
+      formalOptionHoverDurationsRef.current = {}
+      formalOptionHoverCountsRef.current = {}
       panelOpenAtRef.current = Date.now()
       track('formal_object_clicked', { itemId: item.id })
-      track('formal_question_opened', { itemId: item.id })
+      track('formal_question_opened', { itemId: item.id, questionOpenedAt: panelOpenAtRef.current })
     },
     [formalAnsweredIds, sessionId, step],
   )
 
   const submitFormal = () => {
     if (!formalPanelItem || !formalSelected) return
-    formalOrderRef.current += 1
 
-    const hoveredOptionSummary = (formalOptionMap.get(formalPanelItem.id) ?? formalPanelItem.options).map((opt) => {
-      const key = `${formalPanelItem.id}::${opt.id}`
-      const stat = formalOptionHoverStatsRef.current[key]
-      return {
-        optionId: opt.id,
-        hoverCount: stat?.hoverCount ?? 0,
-        hoverDurationMsTotal: stat?.hoverDurationMsTotal ?? 0,
-      }
+    const now = Date.now()
+    Object.entries(formalOptionHoverStartRef.current).forEach(([optionId, startedAt]) => {
+      if (!startedAt) return
+      const duration = now - startedAt
+      formalOptionHoverDurationsRef.current[optionId] =
+        (formalOptionHoverDurationsRef.current[optionId] ?? 0) + duration
     })
+    formalOptionHoverStartRef.current = {}
 
+    formalOrderRef.current += 1
     const answer: FormalAnswer = {
       itemId: formalPanelItem.id,
       selectedOptionId: formalSelected,
-      durationMs: Date.now() - panelOpenAtRef.current,
+      durationMs: now - panelOpenAtRef.current,
       orderIndex: formalOrderRef.current,
-      optionHoverSummary: hoveredOptionSummary,
+      optionHoverDurationsMs: { ...formalOptionHoverDurationsRef.current },
+      optionHoverCounts: { ...formalOptionHoverCountsRef.current },
     }
     const nextAnswers = [...formalAnswers, answer]
     setFormalAnswers(nextAnswers)
     setFormalPanelItem(null)
-
-    Object.keys(formalOptionHoverStartAtRef.current).forEach((key) => {
-      if (key.startsWith(`${formalPanelItem.id}::`)) {
-        delete formalOptionHoverStartAtRef.current[key]
-      }
-    })
-
     track('formal_answer_submitted', {
       itemId: answer.itemId,
       selectedOptionId: answer.selectedOptionId,
       durationMs: answer.durationMs,
       orderIndex: answer.orderIndex,
-      option_hover_summary: hoveredOptionSummary,
+      optionHoverDurationsMs: answer.optionHoverDurationsMs,
+      optionHoverCounts: answer.optionHoverCounts,
     })
-    track('formal_item_transformed', { itemId: answer.itemId })
-    track('formal_progress_updated', { finished: nextAnswers.length, total: FORMAL_ITEMS.length })
+
+    formalOptionHoverDurationsRef.current = {}
+    formalOptionHoverCountsRef.current = {}
 
     if (nextAnswers.length === FORMAL_ITEMS.length) {
+      setFormalCompleted(true)
       track('formal_all_completed')
       track('formal_environment_transition_started')
       window.setTimeout(() => {
         track('formal_environment_transition_finished')
-        setFormalCanExit(true)
+        setShowFormalExitButton(true)
       }, 2000)
     }
   }
@@ -681,6 +618,36 @@ function App() {
     if (!item) return
     openFormalPanel(item)
   }, [formalAnsweredIds])
+
+  const handleFormalOptionHoverStart = (optionId: string) => {
+    if (!formalPanelItem) return
+    if (formalOptionHoverStartRef.current[optionId]) return
+    formalOptionHoverStartRef.current[optionId] = Date.now()
+    formalOptionHoverCountsRef.current[optionId] = (formalOptionHoverCountsRef.current[optionId] ?? 0) + 1
+    track('formal_option_hover_start', { itemId: formalPanelItem.id, optionId })
+  }
+
+  const handleFormalOptionHoverEnd = (optionId: string) => {
+    if (!formalPanelItem) return
+    const startedAt = formalOptionHoverStartRef.current[optionId]
+    if (!startedAt) return
+    const duration = Date.now() - startedAt
+    formalOptionHoverDurationsRef.current[optionId] =
+      (formalOptionHoverDurationsRef.current[optionId] ?? 0) + duration
+    delete formalOptionHoverStartRef.current[optionId]
+    track('formal_option_hover_end', { itemId: formalPanelItem.id, optionId, durationMs: duration })
+  }
+
+  const exitFormalToSurvey = () => {
+    const endedAt = Date.now()
+    const durationMs = formalStepStartedAtRef.current ? endedAt - formalStepStartedAtRef.current : 0
+    track('formal_exit_experiment_click', {
+      formalStartedAt: formalStepStartedAtRef.current,
+      formalEndedAt: endedAt,
+      formalDurationMs: durationMs,
+    })
+    goToStep('survey')
+  }
 
   const isSceneStep = step === 'practice' || step === 'formal'
 
@@ -858,10 +825,16 @@ function App() {
         <section className="scene-wrap">
           <div className="scene-overlay-top scene-overlay-top--formal">
             <div className="scene-top-actions">
-              <div className="counter counter--overlay">{formalAnswers.length}/10 已完成</div>
-              <button className="ghost-btn" onClick={() => goToStep('survey')}>
-                跳到问卷页
-              </button>
+              <div className="counter counter--overlay">{formalAnswers.length}/{FORMAL_ITEMS.length} 已完成</div>
+              {showFormalExitButton ? (
+                <button className="ghost-btn" onClick={exitFormalToSurvey}>
+                  退出实验
+                </button>
+              ) : (
+                <span className="ghost-btn" style={{ opacity: 0.7, pointerEvents: 'none' }}>
+                  完成全部题目后可退出
+                </span>
+              )}
             </div>
           </div>
 
@@ -870,10 +843,18 @@ function App() {
               <span>
                 坐标 X:{position.x} Z:{position.z}
               </span>
+              <span>本阶段已进行：{Math.floor(formalDurationMs / 1000)}s</span>
               <span>自由移动并点击发光物品作答</span>
             </div>
-            <ThreeScene items={formalSceneItems} onItemClick={handleFormalItemClick} />
+            <ThreeScene items={formalSceneItems} onItemClick={handleFormalItemClick} interactionLocked={Boolean(formalPanelItem)} />
           </div>
+
+          {formalCompleted && !showFormalExitButton && !formalPanelItem && (
+            <div className="qa-panel">
+              <h3>恭喜你已完成所有任务</h3>
+              <p>场景正在从 2030 过渡到 1930，请稍候...</p>
+            </div>
+          )}
 
           {formalPanelItem && (
             <div className="qa-panel">
@@ -883,6 +864,8 @@ function App() {
                   <button
                     key={opt.id}
                     className={formalSelected === opt.id ? 'opt selected' : 'opt'}
+                    onMouseEnter={() => handleFormalOptionHoverStart(opt.id)}
+                    onMouseLeave={() => handleFormalOptionHoverEnd(opt.id)}
                     onClick={() => {
                       setFormalSelected(opt.id)
                       track('formal_option_selected', {

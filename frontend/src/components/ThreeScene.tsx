@@ -11,16 +11,10 @@ type SceneItem = {
   slotOverride?: number
 }
 
-type CameraState = {
-  position: { x: number; y: number; z: number }
-  rotation: { pitch: number; yaw: number; roll: number }
-}
-
 type ThreeSceneProps = {
   items: SceneItem[]
   onItemClick: (id: string) => void
   onActiveItemsChange?: (activeIds: string[]) => void
-  onCameraStateChange?: (state: CameraState) => void
   modelScaleMultiplier?: number
   showAxesHelper?: boolean
   renderUnusedSlots?: boolean
@@ -47,105 +41,105 @@ type ItemPlacementConfig = {
 // 手动调参区：统一管理所有模型的坐标/缩放/Y轴旋转
 const ITEM_CONFIGS: ItemPlacementConfig[] = [
   {
-    modelPath: '/assets/models/2030_air_conditioner.glb',
+    modelPath: '/assets/models/itr_09_2030_airConditioner_bedroom.glb',
     position: [-7.5, 6, 4],
     targetSize: 6,
     rotationY: Math.PI/2,
   },
   {
-    modelPath: '/assets/models/2030_coffee_machine.glb',
+    modelPath: '/assets/models/itr_08_2030_coffeeMachine_bedroom.glb',
     position: [-7, 2, -7],
     targetSize: 3.2,
     rotationY: 0,
   },
   {
-    modelPath: '/assets/models/2030_computer.glb',
+    modelPath: '/assets/models/nonitr_07_2030_roboticTree_bedroom.glb',
     position: [1, 0, -7],
     targetSize: 6.2,
     rotationY: 0,
   },
   {
-    modelPath: '/assets/models/2030_digital_wallet.glb',
+    modelPath: '/assets/models/itr_07_2030_digitalWallet_bedroom.glb',
     position: [-2,1, 5.4],
     targetSize: 1.1,
     rotationY: Math.PI / 2,
   },
   {
-    modelPath: '/assets/models/2030_door.glb',
+    modelPath: '/assets/models/nonitr_06_2030_frontDoor_bedroom.glb',
     position: [6, 0, -8],
     targetSize: 8,
     rotationY: 0,
   },
   {
-    modelPath: '/assets/models/2030_handphone.glb',
+    modelPath: '/assets/models/itr_06_2030_smartPhone_bedroom.glb',
     position: [-6, 2, -5],
     targetSize: 1.2,
     rotationY: 0,
   },
   {
-    modelPath: '/assets/models/2030_laptop.glb',
+    modelPath: '/assets/models/itr_05_2030_laptop_bedroom.glb',
     position: [-4, 2, -5.6],
     targetSize: 2,
     rotationY: 0,
   },
   {
-    modelPath: '/assets/models/2030_soundbox.glb',
+    modelPath: '/assets/models/itr_02_2030_soundbox_bedroom.glb',
     position: [-6.8, 6, -7.5],
     targetSize: 2.4,
     rotationY: 0.5,
   },
   {
-    modelPath: '/assets/models/2030_table.glb',
+    modelPath: '/assets/models/nonitr_01_2030_table_bedroom.glb',
     position: [-4.8, 0, -5.7],
     targetSize: 7,
     rotationY: 0,
   },
   {
-    modelPath: '/assets/models/2030_time_spray.glb',
+    modelPath: '/assets/models/itr_01_2030_spray_bedroom.glb',
     position: [-3, 1.45, 5.5],
     targetSize: 1.5,
     rotationY: 0,
     rotationZ: -Math.PI / 2,
   },
   {
-    modelPath: '/assets/models/2030_chair.glb',
+    modelPath: '/assets/models/nonitr_04_2030_chair_bedroom.glb',
     position: [-5, 0, -1.5],
     targetSize: 4,
     rotationY: Math.PI*5/6,
   },
   {
-    modelPath: '/assets/models/2030_sofa.glb',
+    modelPath: '/assets/models/nonitr_05_2030_sofa_bedroom.glb',
     position: [-6.5, 0, 4.5],
     targetSize: 6.5,
     rotationY: Math.PI/2,
   },
   {
-    modelPath: '/assets/models/2030_bed.glb',
+    modelPath: '/assets/models/nonitr_02_2030_bed_bedroom.glb',
     position: [4.6, 0,4.6],
     targetSize: 7.5,
     rotationY: -Math.PI / 1,
   },
   // ===== 新增模型手动调参（和上面同格式）=====
   {
-    modelPath: '/assets/models/2030_tea_table.glb',
+    modelPath: '/assets/models/nonitr_03_2030_teaTable_bedroom.glb',
     position: [-2.5, 0, 4.5],
     targetSize: 4,
     rotationY: Math.PI / 2,
   },
   {
-    modelPath: '/assets/models/2030_lighter.glb',
+    modelPath: '/assets/models/itr_10_2030_electricLighter_bedroom.glb',
     position: [6, 1, -6.5],
     targetSize: 1,
     rotationY: Math.PI / 5,
   },
   {
-    modelPath: '/assets/models/2030_projector_01.glb',
+    modelPath: '/assets/models/itr_03_2030_holographicProjectorB_bedroom.glb',
     position: [8, 2, 4.2],
     targetSize: 7.5,
     rotationY: Math.PI/2,
   },
   {
-    modelPath: '/assets/models/2030_projector_02.glb',
+    modelPath: '/assets/models/itr_03_2030_holographicProjectorA_bedroom.glb',
     position: [-1.8, 1.02, 3.6],
     targetSize: 1.4,
     rotationY: Math.PI / 2,
@@ -196,15 +190,15 @@ const NO_GREEN_MODEL_PATHS = new Set([
 ])
 
 const HISTORIC_MODEL_BY_SLOT: Partial<Record<number, string>> = {
-  0: '/assets/models/1930_heating.glb',
-  1: '/assets/models/1930_handmade_coffee.glb',
-  3: '/assets/models/1930_bag.glb',
-  5: '/assets/models/1930_envelop.glb',
-  6: '/assets/models/1930_typewriter.glb',
-  7: '/assets/models/1930_radio.glb',
-  9: '/assets/models/1930_time_spray.glb',
-  14: '/assets/models/1930_matchstick.glb',
-  15: '/assets/models/1930_light.glb',
+  0: '/assets/models/itr_09_1930_heating_bedroom.glb',
+  1: '/assets/models/itr_08_1930_handmadeCoffeeTools_bedroom.glb',
+  3: '/assets/models/itr_07_1930_purse_bedroom.glb',
+  5: '/assets/models/itr_06_1930_envelope_bedroom.glb',
+  6: '/assets/models/itr_05_1930_0_typewriter_bedroom.glb',
+  7: '/assets/models/itr_03_1930_radio_bedroom.glb',
+  9: '/assets/models/itr_01_1930_spray_bedroom.glb',
+  14: '/assets/models/itr_10_1930_matchstick_bedroom.glb',
+  15: '/assets/models/itr_04_1930_0_keroseneLamp_bedroom.glb',
 }
 
 function fitModelToTarget(model: THREE.Object3D, targetSize = 1.1) {
@@ -304,7 +298,6 @@ export default function ThreeScene({
   items,
   onItemClick,
   onActiveItemsChange,
-  onCameraStateChange,
   modelScaleMultiplier = 1,
   showAxesHelper = false,
   renderUnusedSlots = true,
@@ -318,7 +311,6 @@ export default function ThreeScene({
   const itemsRef = useRef<SceneItem[]>(items)
   const onItemClickRef = useRef(onItemClick)
   const onActiveItemsChangeRef = useRef(onActiveItemsChange)
-  const onCameraStateChangeRef = useRef(onCameraStateChange)
   const interactionLockedRef = useRef(interactionLocked)
 
   useEffect(() => {
@@ -332,10 +324,6 @@ export default function ThreeScene({
   useEffect(() => {
     onActiveItemsChangeRef.current = onActiveItemsChange
   }, [onActiveItemsChange])
-
-  useEffect(() => {
-    onCameraStateChangeRef.current = onCameraStateChange
-  }, [onCameraStateChange])
 
   useEffect(() => {
     interactionLockedRef.current = interactionLocked
@@ -962,18 +950,6 @@ export default function ThreeScene({
       }
 
       controls.update()
-      onCameraStateChangeRef.current?.({
-        position: {
-          x: camera.position.x,
-          y: camera.position.y,
-          z: camera.position.z,
-        },
-        rotation: {
-          pitch: camera.rotation.x,
-          yaw: camera.rotation.y,
-          roll: camera.rotation.z,
-        },
-      })
       renderer.render(scene, camera)
     }
 
