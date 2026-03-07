@@ -183,6 +183,20 @@
 
 - **可交互物件层**
   - 共 20 个可交互物件（卧室 10、厨房 5、厕所 5）
+  卧室：
+  互动物体编号 ｜ 2030年	｜ 1930年
+01｜ itr_01_2030_spray_bedroom	｜ itr_01_1930_spray_bedroom
+02｜ itr_02_2030_soundbox_bedroom  ｜ itr_02_1930_phonograph_bedroom
+03｜ itr_03_2030_holographicProjectorA_bedroom；itr_03_2030_holographicProjectorB_bedroom｜ itr_03_1930_radio_bedroom （此处的交互为itr_03_2030_holographicProjectorA_bedroom； itr_03_2030_holographicProjectorB_bedroom这两个模型合并为一个物体，和这个物体互动后会变成
+itr_03_1930_radio_bedroom这个唯一模型）
+04｜ itr_04_2030_smartLight_bedroom ｜ itr_04_1930_0_keroseneLamp_bedroom
+05｜ itr_05_2030_laptop_bedroom ｜ itr_05_1930_0_typewriter_bedroom
+06｜ itr_06_2030_smartPhone_bedroom ｜ itr_06_1930_envelope_bedroom
+07｜ itr_07_2030_digitalWallet_bedroom ｜ itr_07_1930_purse_bedroom
+08｜ itr_08_2030_coffeeMachine_bedroom ｜ itr_08_1930_handmadeCoffeeTools_bedroom
+09｜ itr_09_2030_airConditioner_bedroom ｜ itr_09_1930_heating_bedroom
+10｜ itr_10_2030_electricLighter_bedroom ｜ itr_10_1930_matchstick_bedroom
+
   - 用户接近后高亮发光并进入可点击态；远离后恢复不可点击态
   - 已完成物件替换为 1930 版本并锁定不可再次点击
 
@@ -706,3 +720,4 @@ itr_03_2030_holographicProjector_bedroom	｜ itr_03_2030_holographicProjectorA_b
 2030_computer	｜ nonitr_07_2030_roboticTree_bedroom
 1930_table	｜ nonitr_01_1930_table_bedroom
 1930_door	｜ nonitr_06_1930_frontDoor_bedrom
+

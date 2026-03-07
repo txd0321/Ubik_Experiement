@@ -1104,20 +1104,21 @@ export default function ThreeScene({
 
     const isMovementBlocked = (prevX: number, prevZ: number, nextX: number, nextZ: number) => {
       const PLAYER_RADIUS = 0.22
+      // 外墙留碰撞半径，室内分区交界处不留缝隙，避免门洞被“卡死”
       const inBedroom =
         nextX >= -8 + PLAYER_RADIUS &&
-        nextX <= 8 - PLAYER_RADIUS &&
+        nextX <= 8 &&
         nextZ >= -8 + PLAYER_RADIUS &&
-        nextZ <= 8 - PLAYER_RADIUS
+        nextZ <= 8
       const inKitchen =
-        nextX >= 8 + PLAYER_RADIUS &&
+        nextX >= 8 &&
         nextX <= 16 - PLAYER_RADIUS &&
         nextZ >= -8 + PLAYER_RADIUS &&
         nextZ <= 2 - PLAYER_RADIUS
       const inToilet =
         nextX >= -8 + PLAYER_RADIUS &&
         nextX <= 0 - PLAYER_RADIUS &&
-        nextZ >= 8 + PLAYER_RADIUS &&
+        nextZ >= 8 &&
         nextZ <= 18 - PLAYER_RADIUS
 
       const isCrossingKitchenWall =

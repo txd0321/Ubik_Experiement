@@ -418,6 +418,19 @@ function App() {
     track('practice_object_clicked', { itemId: PRACTICE_QUESTION.id })
   }, [sessionId, step])
 
+  const closePracticePanel = () => {
+    if (practiceFeedbackTimerRef.current) {
+      window.clearTimeout(practiceFeedbackTimerRef.current)
+      practiceFeedbackTimerRef.current = null
+    }
+    setPracticePanelOpen(false)
+    setPracticeSelected('')
+    setShowPracticeFeedback(false)
+    setShowEnterFormalButton(false)
+    setPracticeFeedbackShownAt(null)
+    track('practice_panel_closed')
+  }
+
   const submitPractice = () => {
     if (!practiceSelected) return
     const isCorrect = practiceSelected === PRACTICE_QUESTION.correctOptionId
@@ -474,6 +487,31 @@ function App() {
     },
     [formalAnsweredIds, sessionId, step],
   )
+
+  const closeFormalPanel = () => {
+    if (!formalPanelItem) return
+
+    const now = Date.now()
+    Object.entries(formalOptionHoverStartRef.current).forEach(([optionId, startedAt]) => {
+      if (!startedAt) return
+      const duration = now - startedAt
+      formalOptionHoverDurationsRef.current[optionId] =
+        (formalOptionHoverDurationsRef.current[optionId] ?? 0) + duration
+    })
+    formalOptionHoverStartRef.current = {}
+
+    track('formal_question_closed', {
+      itemId: formalPanelItem.id,
+      openedDurationMs: now - panelOpenAtRef.current,
+      optionHoverDurationsMs: { ...formalOptionHoverDurationsRef.current },
+      optionHoverCounts: { ...formalOptionHoverCountsRef.current },
+    })
+
+    formalOptionHoverDurationsRef.current = {}
+    formalOptionHoverCountsRef.current = {}
+    setFormalSelected('')
+    setFormalPanelItem(null)
+  }
 
   const submitFormal = () => {
     if (!formalPanelItem || !formalSelected) return
@@ -760,6 +798,9 @@ function App() {
 
           {practicePanelOpen && (
             <div className="qa-panel qa-panel--practice">
+              <button className="qa-panel-close" onClick={closePracticePanel} aria-label="关闭答题卡">
+                ×
+              </button>
               {showEnterFormalButton ? (
                 <>
                   <h3 className="practice-finish-title">恭喜完成操作教学环节！</h3>
@@ -864,6 +905,9 @@ function App() {
 
           {formalPanelItem && (
             <div className="qa-panel">
+              <button className="qa-panel-close" onClick={closeFormalPanel} aria-label="关闭答题卡">
+                ×
+              </button>
               <h3>{formalPanelItem.question}</h3>
               <div className="options-grid">
                 {(formalOptionMap.get(formalPanelItem.id) ?? formalPanelItem.options).map((opt) => (
